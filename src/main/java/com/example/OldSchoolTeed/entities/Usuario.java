@@ -34,7 +34,7 @@ public class Usuario {
     private LocalDateTime fechaRegistro;
 
     @Column(name = "activo",nullable = false)
-    private boolean activo;
+    private Boolean activo=true;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
