@@ -34,4 +34,10 @@ public class Inventario {
     protected void onUpdate() {
         this.ultimaActualizacion = LocalDateTime.now();
     }
+
+    public Inventario(Producto producto, int stock) {
+        this.producto = producto;
+        this.stock = stock;
+        this.setUltimaActualizacion(java.time.LocalDateTime.now()); // (Esto es opcional pero bueno)
+    }
 }

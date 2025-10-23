@@ -1,4 +1,4 @@
-package com.example.OldSchoolTeed.service;
+package com.example.OldSchoolTeed.service.impl;
 
 import com.example.OldSchoolTeed.repository.UsuarioRepository;
 import org.springframework.security.core.userdetails.UserDetails;

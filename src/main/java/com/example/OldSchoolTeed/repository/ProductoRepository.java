@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 
-public interface ProductoRepository extends JpaRepository<Producto, Long> {
+public interface ProductoRepository extends JpaRepository<Producto, Integer> {
     // para buscar x nombre
     List<Producto> findByCategoriaNombre(String nombreCategoria);
 
     //metodo para buscar los productos activosss
-    List<Producto> findByActivo();
+    List<Producto> findByActivoTrue();
 }

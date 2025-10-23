@@ -1,15 +1,14 @@
-package com.example.OldSchoolTeed.service;
+package com.example.OldSchoolTeed.service.impl;
 
+import com.example.OldSchoolTeed.service.JwtService;
 import io.jsonwebtoken.Claims;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -19,7 +18,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
-public class JwtserviceImpl implements JwtService{
+public class JwtserviceImpl implements JwtService {
     // Inyectamos los valores desde application.properties
     @Value("${jwt.secret}")
     private String jwtSecret;
