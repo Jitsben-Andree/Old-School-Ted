@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface promocionRepository extends JpaRepository<Promocion, Integer> {
+public interface PromocionRepository extends JpaRepository<Promocion, Integer> {
 
     //este metodo para buscar un codigo de promocion
     Optional<Promocion> findByCodigo(String codigo);

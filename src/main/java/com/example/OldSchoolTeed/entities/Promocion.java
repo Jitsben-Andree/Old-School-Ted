@@ -29,7 +29,7 @@ public class Promocion {
     private String descripcion;
 
     @Column(name = "porcentaje_descuento", precision = 5, scale = 2, nullable = false)
-    private BigDecimal porcentajeDescuento;
+    private BigDecimal descuento;
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDateTime fechaInicio;
