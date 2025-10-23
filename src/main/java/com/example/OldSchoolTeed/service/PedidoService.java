@@ -1,7 +1,6 @@
 package com.example.OldSchoolTeed.service;
 
-import com.example.OldSchoolTeed.dto.PedidoRequest;
-import com.example.OldSchoolTeed.dto.PedidoResponse;
+import com.example.OldSchoolTeed.dto.*;
 
 import java.util.List;
 
@@ -30,4 +29,36 @@ public interface PedidoService {
      * @return El pedido
      */
     PedidoResponse getPedidoById(String userEmail, Integer pedidoId);
+
+    // --- NUEVOS MÉTODOS DE ADMIN ---
+
+    /**
+     * [Admin] Obtiene todos los pedidos de todos los usuarios.
+     * @return Lista de todos los PedidoResponse.
+     */
+    List<PedidoResponse> getAllPedidosAdmin();
+
+    /**
+     * [Admin] Actualiza el estado general de un pedido.
+     * @param pedidoId ID del pedido a actualizar.
+     * @param request DTO con el nuevo estado.
+     * @return El PedidoResponse actualizado.
+     */
+    PedidoResponse updatePedidoStatusAdmin(Integer pedidoId, AdminUpdatePedidoStatusRequest request);
+
+    /**
+     * [Admin] Actualiza el estado del pago de un pedido.
+     * @param pedidoId ID del pedido cuyo pago se actualizará.
+     * @param request DTO con el nuevo estado del pago.
+     * @return El PedidoResponse actualizado (reflejando el estado del pago).
+     */
+    PedidoResponse updatePagoStatusAdmin(Integer pedidoId, AdminUpdatePagoRequest request);
+
+    /**
+     * [Admin] Actualiza los detalles del envío de un pedido.
+     * @param pedidoId ID del pedido cuyo envío se actualizará.
+     * @param request DTO con los detalles del envío.
+     * @return El PedidoResponse actualizado (reflejando el estado del envío).
+     */
+    PedidoResponse updateEnvioDetailsAdmin(Integer pedidoId, AdminUpdateEnvioRequest request);
 }
