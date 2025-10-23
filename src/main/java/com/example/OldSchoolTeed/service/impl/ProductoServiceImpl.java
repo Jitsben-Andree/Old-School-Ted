@@ -35,19 +35,26 @@ public class ProductoServiceImpl implements ProductoService {
     private ProductoResponse mapToProductoResponse(Producto producto) {
         // Buscamos el inventario para este producto
         Inventario inventario = inventarioRepository.findByProducto(producto)
-                .orElse(new Inventario(producto, 0)); // Si no hay inventario, stock es 0
+                .orElseGet(() -> {
+                    // FIX: Creamos un inventario temporal para el DTO si no existe
+                    Inventario tempInv = new Inventario();
+                    tempInv.setStock(0);
+                    tempInv.setProducto(producto); // Asignamos el producto para evitar NullPointer
+                    return tempInv;
+                });
 
         return ProductoResponse.builder()
-                .id(producto.getIdProducto())
+                .id(producto.getIdProducto()) // Asumo que corregiste esto a idProducto
                 .nombre(producto.getNombre())
                 .descripcion(producto.getDescripcion())
-                .talla(producto.getTalla().name())
+                .talla(producto.getTalla().name()) // Asumo que corregiste esto a .name()
                 .precio(producto.getPrecio())
                 .activo(producto.getActivo())
                 .categoriaNombre(producto.getCategoria().getNombre())
                 .stock(inventario.getStock())
                 .build();
     }
+
 
     // --- Implementación de Métodos Públicos ---
 
@@ -89,6 +96,7 @@ public class ProductoServiceImpl implements ProductoService {
         Producto producto = new Producto();
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
+        // FIX: Convertir String a Enum (asumo que 'Talla' está dentro de 'Producto')
         producto.setTalla(Producto.Talla.valueOf(request.getTalla().toUpperCase()));
         producto.setPrecio(request.getPrecio());
         producto.setActivo(request.getActivo() != null ? request.getActivo() : true);
@@ -97,7 +105,11 @@ public class ProductoServiceImpl implements ProductoService {
         Producto productoGuardado = productoRepository.save(producto);
 
         // 3. Crear su registro de inventario inicial (con stock 0)
-        Inventario inventario = new Inventario(productoGuardado, 0);
+        // ---- FIX AQUÍ ----
+        Inventario inventario = new Inventario(); // Usar constructor vacío
+        inventario.setProducto(productoGuardado);
+        inventario.setStock(0);
+        // la fecha 'ultimaActualizacion' se setea sola por @PrePersist
         inventarioRepository.save(inventario);
 
         return mapToProductoResponse(productoGuardado);
@@ -111,6 +123,7 @@ public class ProductoServiceImpl implements ProductoService {
                 .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + id));
 
         // 2. Buscar la categoría si cambió
+        // Asumo que corregiste getId() a getIdCategoria()
         if (request.getCategoriaId() != null && !request.getCategoriaId().equals(producto.getCategoria().getIdCategoria())) {
             Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
                     .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + request.getCategoriaId()));
@@ -120,6 +133,7 @@ public class ProductoServiceImpl implements ProductoService {
         // 3. Actualizar campos
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
+        // FIX: Convertir String a Enum
         producto.setTalla(Producto.Talla.valueOf(request.getTalla().toUpperCase()));
         producto.setPrecio(request.getPrecio());
         producto.setActivo(request.getActivo());
