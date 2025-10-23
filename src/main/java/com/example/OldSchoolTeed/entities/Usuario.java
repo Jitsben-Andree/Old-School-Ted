@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -22,7 +26,26 @@ public class Usuario {
     @Column(name = "password_hash", length = 255 , nullable = false)
     private String passwordHash;
 
-    @Column(name = "email",length = 100,nullable = false)
+    @Column(name = "email",length = 100,nullable = false,unique = true)
     private String email;
+
+    @Column(name = "fecha_registro",updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime fechaRegistro;
+
+    @Column(name = "activo",nullable = false)
+    private boolean activo;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "usuario_rol",
+            joinColumns = @JoinColumn(name = "id_usuario"),
+            inverseJoinColumns = @JoinColumn(name = "id_rol")
+    )
+    private Set<Rol> roles=new HashSet<>();
+    @PrePersist
+    protected void onCreate() {
+        this.fechaRegistro = LocalDateTime.now();
+    }
 
 }
