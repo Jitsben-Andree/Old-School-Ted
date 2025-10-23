@@ -38,15 +38,14 @@ public class Producto {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria")
-    private Categoria categorias;
+    private Categoria categoria;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "producto_promocion")
     @JoinTable(
             name = "producto_promocion",
-            joinColumns = @JoinColumn(name = "id_promocion"),
+            joinColumns = @JoinColumn(name = "id_producto"),
             inverseJoinColumns = @JoinColumn(name = "id_promocion")
     )
     private Set<Promocion> promociones=new HashSet<Promocion>();
