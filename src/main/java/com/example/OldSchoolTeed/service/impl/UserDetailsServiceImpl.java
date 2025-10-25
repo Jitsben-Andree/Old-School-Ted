@@ -42,6 +42,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 true, // credentialsNonExpired
                 true, // accountNonLocked
                 authorities
+
         );
     }
 }

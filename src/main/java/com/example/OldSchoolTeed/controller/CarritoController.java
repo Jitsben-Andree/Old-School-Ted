@@ -11,8 +11,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/carrito") // Ruta base (recuerda que el context-path es /api/v1)
-@PreAuthorize("hasAuthority('Cliente')") // ¡TODA esta clase requiere rol 'Cliente'!
+@RequestMapping("/carrito")
+// ¡¡AQUÍ ESTÁ EL CAMBIO!!
+// Cambiamos de "hasAuthority('Cliente')" a "hasAnyAuthority" para permitir ambos roles
+@PreAuthorize("hasAnyAuthority('Cliente', 'Administrador')")
 public class CarritoController {
 
     private final CarritoService carritoService;

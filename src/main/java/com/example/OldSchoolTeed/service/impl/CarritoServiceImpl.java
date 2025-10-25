@@ -75,7 +75,7 @@ public class CarritoServiceImpl implements CarritoService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public CarritoResponse getCarritoByUsuario(String userEmail) {
         Usuario usuario = usuarioRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
