@@ -38,6 +38,10 @@ public class Producto {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
+    // Añadimos el campo para la URL de la imagen
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria")
     private Categoria categoria;

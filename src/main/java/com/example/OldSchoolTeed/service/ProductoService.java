@@ -16,4 +16,10 @@ public interface ProductoService {
     ProductoResponse createProducto(ProductoRequest request);
     ProductoResponse updateProducto(Integer id, ProductoRequest request);
     void deleteProducto(Integer id); // Soft delete (cambiar activo a false)
+
+    // --- Nuevos Métodos de Admin ---
+    List<ProductoResponse> getAllProductosIncludingInactive(); // Para la tabla de admin
+    void associatePromocionToProducto(Integer productoId, Integer promocionId);
+    void disassociatePromocionFromProducto(Integer productoId, Integer promocionId);
+
 }

@@ -18,5 +18,5 @@ public class DetalleCarritoResponse {
     private Integer cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal subtotal;
-    // private String imageUrl;
+    private String imageUrl; // Añadido para mostrar imagen en el carrito
 }

@@ -46,16 +46,16 @@ public class Pedido {
 
 
     public enum EstadoPedido {
-        Pendiente,
-        Pagado,
-        Enviado,
-        Entregado,
-        Cancelado
+        PENDIENTE,
+        PAGADO,
+        ENVIADO,
+        ENTREGADO,
+        CANCELADO
     }
 
     @PrePersist
     protected void onCreate() {
         this.fecha = LocalDateTime.now();
-        this.estado = EstadoPedido.Pendiente;
+        this.estado = EstadoPedido.PENDIENTE;
     }
 }

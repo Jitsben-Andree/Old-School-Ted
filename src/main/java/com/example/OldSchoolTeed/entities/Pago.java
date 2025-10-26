@@ -44,22 +44,22 @@ public class Pago {
 
 
     public enum MetodoPago {
-        Yape,
-        Plin,
-        Tarjeta,
-        PayPal,
-        Transferencia
+        YAPE,
+        PLIN,
+        TARJETA,
+        PAYPAL,
+        TRANSFERENCIA
     }
 
     public enum EstadoPago {
-        Pendiente,
-        Completado,
-        Fallido
+        PENDIENTE,
+        COMPLETADO,
+        FALLIDO
     }
 
     @PrePersist
     protected void onCreate() {
         this.fechaPago = LocalDateTime.now();
-        this.estado = EstadoPago.Pendiente;
+        this.estado = EstadoPago.PENDIENTE;
     }
 }

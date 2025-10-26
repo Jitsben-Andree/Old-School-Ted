@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList; // <-- Importa ArrayList
+import java.util.ArrayList; // Importar ArrayList
 import java.util.List;
 
 @Entity
@@ -29,13 +29,13 @@ public class Carrito {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime fechaCreacion;
 
+    // Inicializar la lista para evitar NullPointerException
     @OneToMany(mappedBy = "carrito", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    // ¡¡AQUÍ ESTÁ EL CAMBIO!!
-    // Inicializamos la lista para evitar el NullPointerException
-    private List<DetalleCarrito> detallesCarrito = new ArrayList<>();
+    private List<DetalleCarrito> detallesCarrito = new ArrayList<>(); // <-- Inicializado aquí
 
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
     }
 }
+

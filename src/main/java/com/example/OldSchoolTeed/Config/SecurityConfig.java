@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
 
+                        //para la imagen
+                        .requestMatchers(HttpMethod.GET, "/files/uploads/**").permitAll()
                         // (Opcional) Documentación de API (si usas Swagger/OpenAPI)
                         // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
 

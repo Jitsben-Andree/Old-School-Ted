@@ -38,14 +38,14 @@ public class Envio {
     private String codigoSeguimiento;
 
     public enum EstadoEnvio {
-        En_preparacion,
-        En_camino,
-        Entregado,
-        Retrasado
+        EN_PREPARACION,
+        EN_CAMINO,
+        ENTREGADO,
+        RETRASADO
     }
 
     @PrePersist
     protected void onCreate() {
-        this.estado = EstadoEnvio.En_preparacion;
+        this.estado = EstadoEnvio.EN_PREPARACION;
     }
 }

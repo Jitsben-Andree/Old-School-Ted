@@ -16,9 +16,16 @@ public class ProductoResponse {
     private String nombre;
     private String descripcion;
     private String talla;
-    private BigDecimal precio;
+    private BigDecimal precio; // Este será el precio CON DESCUENTO si aplica
     private Boolean activo;
-    private String categoriaNombre; // Enviamos el nombre de la categoría, no el ID
-    private int stock; // Añadimos el stock desde la entidad Inventario
-    // private String imageUrl; // (Cuando implementemos imágenes)
+    private String categoriaNombre;
+    private int stock;
+    private String imageUrl; // Mantenemos el campo de imagen
+
+    // --- Nuevos Campos para Promociones ---
+    private BigDecimal precioOriginal; // El precio base sin descuento
+    private BigDecimal descuentoAplicado; // El porcentaje o monto del descuento aplicado (opcional)
+    private String nombrePromocion; // Nombre de la promoción aplicada (opcional)
+
 }
+
