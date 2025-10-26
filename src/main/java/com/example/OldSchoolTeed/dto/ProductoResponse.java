@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List; // Importar List
+import java.util.Set; // Importar Set (si usas Set en la entidad)
 
 @Data
 @Builder
@@ -16,16 +18,18 @@ public class ProductoResponse {
     private String nombre;
     private String descripcion;
     private String talla;
-    private BigDecimal precio; // Este será el precio CON DESCUENTO si aplica
+    private BigDecimal precio; // Precio final (con descuento si aplica)
     private Boolean activo;
     private String categoriaNombre;
     private int stock;
-    private String imageUrl; // Mantenemos el campo de imagen
+    private String imageUrl;
 
-    // --- Nuevos Campos para Promociones ---
-    private BigDecimal precioOriginal; // El precio base sin descuento
-    private BigDecimal descuentoAplicado; // El porcentaje o monto del descuento aplicado (opcional)
-    private String nombrePromocion; // Nombre de la promoción aplicada (opcional)
+    // --- Campos de Promoción ---
+    private BigDecimal precioOriginal;
+    private BigDecimal descuentoAplicado;
+    private String nombrePromocion;
 
+    // --- NUEVO CAMPO ---
+    private List<PromocionSimpleDto> promocionesAsociadas; // Lista de promociones de este producto
 }
 

@@ -9,26 +9,27 @@ import org.slf4j.Logger; // Importar Logger
 import org.slf4j.LoggerFactory; // Importar LoggerFactory
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+// Quitar PreAuthorize si ya no se usa
+// import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/productos") // Ruta base
+// NO usar RequestMapping global aquí
 public class ProductoController {
 
-    private static final Logger log = LoggerFactory.getLogger(ProductoController.class); // Añadir logger
+    private static final Logger log = LoggerFactory.getLogger(ProductoController.class);
     private final ProductoService productoService;
 
     public ProductoController(ProductoService productoService) {
         this.productoService = productoService;
     }
 
-    // --- ENDPOINTS PÚBLICOS (definidos como GET en SecurityConfig) ---
+    // --- ENDPOINTS PÚBLICOS (/productos/**) ---
 
-    @GetMapping
+    @GetMapping("/productos")
     public ResponseEntity<List<ProductoResponse>> getAllProductosActivos() {
         log.info("GET /productos -> Obteniendo productos activos");
         try {
@@ -39,7 +40,7 @@ public class ProductoController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/productos/{id}")
     public ResponseEntity<ProductoResponse> getProductoById(@PathVariable Integer id) {
         log.info("GET /productos/{} -> Obteniendo producto por ID", id);
         try {
@@ -53,7 +54,7 @@ public class ProductoController {
         }
     }
 
-    @GetMapping("/categoria/{nombreCategoria}")
+    @GetMapping("/productos/categoria/{nombreCategoria}")
     public ResponseEntity<List<ProductoResponse>> getProductosByCategoria(@PathVariable String nombreCategoria) {
         log.info("GET /productos/categoria/{} -> Obteniendo productos por categoría", nombreCategoria);
         try {
@@ -64,13 +65,13 @@ public class ProductoController {
         }
     }
 
-    // --- ENDPOINTS DE ADMINISTRADOR (Protegidos) ---
+    // --- ENDPOINTS DE ADMINISTRADOR (Ahora bajo /admin/productos/**) ---
+    // La seguridad la maneja SecurityConfig con .requestMatchers("/admin/**")
 
-    // Nuevo endpoint para que el Admin vea TODOS los productos
-    @GetMapping("/admin/all")
-    @PreAuthorize("hasAuthority('Administrador')")
+    @GetMapping("/admin/productos/all") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
     public ResponseEntity<List<ProductoResponse>> getAllProductosAdmin() {
-        log.info("Admin: GET /productos/admin/all -> Obteniendo todos los productos");
+        log.info("Admin: GET /admin/productos/all -> Obteniendo todos los productos");
         try {
             return ResponseEntity.ok(productoService.getAllProductosIncludingInactive());
         } catch (Exception e) {
@@ -80,34 +81,33 @@ public class ProductoController {
     }
 
 
-    @PostMapping
-    @PreAuthorize("hasAuthority('Administrador')")
-    public ResponseEntity<ProductoResponse> createProducto(@Valid @RequestBody ProductoRequest request) { // Añadir @Valid
-        log.info("Admin: POST /productos -> Creando producto: {}", request.getNombre());
+    @PostMapping("/admin/productos") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
+    public ResponseEntity<ProductoResponse> createProductoAdmin(@Valid @RequestBody ProductoRequest request) {
+        log.info("Admin: POST /admin/productos -> Creando producto: {}", request.getNombre());
         try {
             ProductoResponse response = productoService.createProducto(request);
             log.info("Admin: Producto creado con ID: {}", response.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (EntityNotFoundException e) {
             log.warn("Admin: Error al crear producto, categoría no encontrada: {}", request.getCategoriaId());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e); // 400 si la categoría no existe
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         } catch (Exception e) {
             log.error("Admin: Error inesperado al crear producto", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear producto", e);
         }
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('Administrador')")
-    public ResponseEntity<ProductoResponse> updateProducto(@PathVariable Integer id, @Valid @RequestBody ProductoRequest request) { // Añadir @Valid
-        log.info("Admin: PUT /productos/{} -> Actualizando producto", id);
+    @PutMapping("/admin/productos/{id}") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
+    public ResponseEntity<ProductoResponse> updateProductoAdmin(@PathVariable Integer id, @Valid @RequestBody ProductoRequest request) {
+        log.info("Admin: PUT /admin/productos/{} -> Actualizando producto", id);
         try {
             ProductoResponse response = productoService.updateProducto(id, request);
             log.info("Admin: Producto ID {} actualizado", id);
             return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
             log.warn("Admin: Error al actualizar, producto o categoría no encontrado para ID: {}", id);
-            // Puede ser producto no encontrado o categoría no encontrada
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (Exception e) {
             log.error("Admin: Error inesperado al actualizar producto ID {}", id, e);
@@ -115,10 +115,10 @@ public class ProductoController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('Administrador')")
-    public ResponseEntity<Void> deleteProducto(@PathVariable Integer id) {
-        log.info("Admin: DELETE /productos/{} -> Desactivando producto", id);
+    @DeleteMapping("/admin/productos/{id}") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
+    public ResponseEntity<Void> deleteProductoAdmin(@PathVariable Integer id) {
+        log.info("Admin: DELETE /admin/productos/{} -> Desactivando producto", id);
         try {
             productoService.deleteProducto(id);
             log.info("Admin: Producto ID {} desactivado (soft delete)", id);
@@ -132,15 +132,15 @@ public class ProductoController {
         }
     }
 
-    // --- NUEVOS ENDPOINTS PARA ASOCIAR PROMOCIONES ---
+    // --- ENDPOINTS PARA ASOCIAR PROMOCIONES (Ahora bajo /admin/productos) ---
 
-    @PostMapping("/{productoId}/promociones/{promocionId}")
-    @PreAuthorize("hasAuthority('Administrador')")
-    public ResponseEntity<Void> associatePromocion(
+    @PostMapping("/admin/productos/{productoId}/promociones/{promocionId}") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
+    public ResponseEntity<Void> associatePromocionAdmin(
             @PathVariable Integer productoId,
             @PathVariable Integer promocionId
     ) {
-        log.info("Admin: POST /productos/{}/promociones/{} -> Asociando promoción", productoId, promocionId);
+        log.info("Admin: POST /admin/productos/{}/promociones/{} -> Asociando promoción", productoId, promocionId);
         try {
             productoService.associatePromocionToProducto(productoId, promocionId);
             log.info("Admin: Promoción ID {} asociada a Producto ID {}", promocionId, productoId);
@@ -154,13 +154,13 @@ public class ProductoController {
         }
     }
 
-    @DeleteMapping("/{productoId}/promociones/{promocionId}")
-    @PreAuthorize("hasAuthority('Administrador')")
-    public ResponseEntity<Void> disassociatePromocion(
+    @DeleteMapping("/admin/productos/{productoId}/promociones/{promocionId}") // <<< RUTA ADMIN
+    // @PreAuthorize("hasAuthority('Administrador')") // Ya no es necesario
+    public ResponseEntity<Void> disassociatePromocionAdmin(
             @PathVariable Integer productoId,
             @PathVariable Integer promocionId
     ) {
-        log.info("Admin: DELETE /productos/{}/promociones/{} -> Desasociando promoción", productoId, promocionId);
+        log.info("Admin: DELETE /admin/productos/{}/promociones/{} -> Desasociando promoción", productoId, promocionId);
         try {
             productoService.disassociatePromocionFromProducto(productoId, promocionId);
             log.info("Admin: Promoción ID {} desasociada de Producto ID {}", promocionId, productoId);

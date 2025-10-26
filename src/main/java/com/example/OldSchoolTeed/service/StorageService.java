@@ -1,68 +1,151 @@
 package com.example.OldSchoolTeed.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.example.OldSchoolTeed.entities.Producto; // Importar Producto
+import com.example.OldSchoolTeed.repository.ProductoRepository; // Importar ProductoRepository
+
+import jakarta.annotation.PostConstruct; // Para init()
+import jakarta.persistence.EntityNotFoundException; // Para manejo de errores
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value; // Para leer application.properties
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Para updateProductImageUrl
+import org.springframework.util.StringUtils; // Para limpiar nombre de archivo
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.UUID;
+import java.util.UUID; // Para nombres únicos
 
 @Service
-public class StorageService {
+public class StorageService  {
 
+    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
+
+    // Leer la ruta del directorio desde application.properties
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    /**
-     * Guarda un archivo en el directorio de subidas.
-     * @param file El archivo a guardar.
-     * @return El nombre único del archivo guardado.
-     * @throws IOException Si ocurre un error al guardar.
-     */
-    public String store(MultipartFile file) throws IOException {
-        // 1. Crear el directorio de subidas si no existe
-        Path uploadPath = Paths.get(uploadDir);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
+    private Path fileStorageLocation; // Ruta absoluta al directorio
 
-        // 2. Generar un nombre de archivo único para evitar colisiones
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-        String uniqueFilename = UUID.randomUUID().toString() + extension;
+    private final ProductoRepository productoRepository; // Inyectar repo para actualizar
 
-        // 3. Definir la ruta de destino y copiar el archivo
-        Path destinationPath = uploadPath.resolve(uniqueFilename);
-        Files.copy(file.getInputStream(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
-
-        // 4. Devolver el nombre (o la ruta relativa)
-        // Devolvemos solo el nombre, ya que serviremos los archivos estáticamente
-        return uniqueFilename;
+    public StorageService(ProductoRepository productoRepository) {
+        this.productoRepository = productoRepository;
     }
 
-    /**
-     * Elimina un archivo si existe.
-     * @param filename El nombre del archivo a eliminar.
-     */
-    public void delete(String filename) {
-        if (filename == null || filename.isEmpty()) {
-            return;
-        }
+
+    @PostConstruct // Ejecutar después de la inyección de dependencias
+    public void init() throws IOException {
         try {
-            Path filePath = Paths.get(uploadDir).resolve(filename);
-            if (Files.exists(filePath)) {
-                Files.delete(filePath);
-            }
-        } catch (IOException e) {
-            System.err.println("Error al eliminar el archivo: " + filename + " - " + e.getMessage());
+            // Construir la ruta absoluta
+            this.fileStorageLocation = Paths.get(this.uploadDir).toAbsolutePath().normalize();
+            log.info("Directorio de almacenamiento de archivos configurado en: {}", this.fileStorageLocation);
+            // Crear el directorio si no existe
+            Files.createDirectories(this.fileStorageLocation);
+            log.info("Directorio de almacenamiento verificado/creado con éxito.");
+        } catch (IOException ex) {
+            log.error("Error al crear el directorio de almacenamiento de archivos en {}", this.uploadDir, ex);
+            throw new IOException("No se pudo crear el directorio donde se guardarán los archivos subidos.", ex);
         }
+    }
+
+
+    public String storeFile(MultipartFile file) throws IOException {
+        // Limpiar el nombre del archivo para evitar problemas de ruta (ej. ../../)
+        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        log.debug("Nombre original del archivo: {}", originalFilename);
+
+        // Validar nombre de archivo (evitar nombres vacíos o inválidos)
+        if (originalFilename.isEmpty()) {
+            throw new IOException("Nombre de archivo inválido.");
+        }
+        if (originalFilename.contains("..")) {
+            throw new IOException("Nombre de archivo contiene secuencia de ruta inválida: " + originalFilename);
+        }
+
+        // Crear un nombre único para evitar sobreescritura y colisiones
+        String fileExtension = "";
+        try {
+            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        } catch (Exception e) {
+            log.warn("No se pudo determinar la extensión del archivo: {}", originalFilename);
+            // Podrías asignar una extensión por defecto o rechazar el archivo
+            fileExtension = ""; // O lanzar excepción si la extensión es obligatoria
+        }
+        // Usar UUID para asegurar unicidad
+        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+        log.debug("Nombre de archivo único generado: {}", uniqueFilename);
+
+
+        try {
+            // Construir la ruta completa del archivo destino
+            Path targetLocation = this.fileStorageLocation.resolve(uniqueFilename);
+            log.debug("Ruta destino del archivo: {}", targetLocation);
+
+
+            // Copiar el archivo al directorio destino
+            // REPLACE_EXISTING asegura que si (por casualidad extrema) el UUID colisiona, se sobreescriba
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+                log.info("Archivo guardado exitosamente en: {}", targetLocation);
+            }
+
+            return uniqueFilename; // Devolver solo el nombre único generado
+
+        } catch (IOException ex) {
+            log.error("Error al guardar el archivo {}: {}", uniqueFilename, ex.getMessage(), ex);
+            throw new IOException("No se pudo guardar el archivo " + uniqueFilename + ". Por favor intente de nuevo.", ex);
+        }
+    }
+
+
+    public Resource loadFileAsResource(String filename) throws MalformedURLException, IOException {
+        try {
+            Path filePath = load(filename); // Usar método helper
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                log.debug("Archivo {} cargado como Resource desde {}", filename, filePath);
+                return resource;
+            } else {
+                log.error("Archivo no encontrado o no legible en la ruta: {}", filePath);
+                // Lanzar una excepción más específica podría ser útil
+                throw new IOException("Archivo no encontrado o no se puede leer: " + filename);
+            }
+        } catch (MalformedURLException ex) {
+            log.error("URL mal formada al intentar cargar archivo {}: {}", filename, ex.getMessage(), ex);
+            throw new MalformedURLException("No se pudo leer el archivo: " + filename);
+        }
+    }
+
+
+    @Transactional // Necesario para modificar la entidad Producto
+    public void updateProductImageUrl(Integer productId, String imageUrl) {
+        log.info("Actualizando imageUrl para Producto ID {} a {}", productId, imageUrl);
+        // Buscar el producto
+        Producto producto = productoRepository.findById(productId)
+                .orElseThrow(() -> {
+                    log.error("Producto no encontrado con ID {} al intentar actualizar imageUrl", productId);
+                    return new EntityNotFoundException("Producto no encontrado con ID: " + productId);
+                });
+
+        // Actualizar la URL y guardar
+        producto.setImageUrl(imageUrl);
+        productoRepository.save(producto);
+        log.info("ImageUrl actualizada con éxito para Producto ID {}", productId);
+    }
+
+
+    public Path load(String filename) {
+        // Método helper para obtener la ruta completa
+        return this.fileStorageLocation.resolve(filename).normalize();
     }
 }
-

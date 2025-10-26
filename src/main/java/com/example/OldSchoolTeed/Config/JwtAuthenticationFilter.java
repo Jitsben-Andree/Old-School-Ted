@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger; // Importar Logger
+import org.slf4j.LoggerFactory; // Importar LoggerFactory
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,7 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class); // Añadir logger
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
@@ -38,44 +41,62 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        // Si no hay cabecera o no empieza con "Bearer ", pasamos al siguiente filtro
+        // Log para ver la petición entrante y la cabecera
+        log.trace("Procesando petición: {} {}", request.getMethod(), request.getRequestURI());
+        log.trace("Cabecera Authorization: {}", authHeader);
+
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.trace("No se encontró cabecera Bearer, continuando cadena de filtros sin autenticación JWT.");
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extraemos el token (quitando "Bearer ")
         jwt = authHeader.substring(7);
+        log.trace("Token JWT extraído: {}", jwt); // Cuidado al loguear tokens en producción
+
 
         try {
             userEmail = jwtService.extractUsername(jwt);
+            log.debug("Email extraído del token: {}", userEmail);
         } catch (Exception e) {
-            // Token inválido (expirado, malformado, etc.)
+            log.warn("Token JWT inválido o expirado: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token JWT inválido o expirado");
-            return;
+            return; // Detener la cadena si el token es inválido
         }
 
 
-        // Si tenemos email y el usuario no está autenticado en el contexto actual
+        // Si tenemos email y el usuario AÚN NO está autenticado en esta petición
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            log.debug("Usuario {} no autenticado en SecurityContext, cargando UserDetails...", userEmail);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            // Si el token es válido, autenticamos al usuario
+            // *** LOG CLAVE: Imprimir las autoridades (roles) cargadas ***
+            log.info("UserDetails cargados para {}. Autoridades: {}", userEmail, userDetails.getAuthorities());
+
+
             if (jwtService.isTokenValid(jwt, userDetails)) {
+                log.debug("Token JWT válido para {}. Autenticando...", userEmail);
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
-                        null, // No pasamos credenciales (password)
-                        userDetails.getAuthorities()
+                        null,
+                        userDetails.getAuthorities() // <<< Pasar autoridades aquí
                 );
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
-                // Actualizamos el SecurityContext
+                // Establecer la autenticación en el contexto
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                log.info("Usuario {} autenticado exitosamente en SecurityContext.", userEmail);
+            } else {
+                log.warn("Token JWT NO válido para usuario {}", userEmail);
             }
+        } else if (userEmail != null) {
+            log.trace("Usuario {} ya estaba autenticado en SecurityContext.", userEmail);
         }
-        // Pasamos al siguiente filtro de la cadena
+
+        // Continuar con el siguiente filtro
         filterChain.doFilter(request, response);
     }
 }

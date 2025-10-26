@@ -3,16 +3,21 @@ package com.example.OldSchoolTeed.entities;
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+// import lombok.Data; // Quitar si implementas equals/hashCode
+import lombok.Getter; // Usar Getter
 import lombok.NoArgsConstructor;
+import lombok.Setter; // Usar Setter
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Objects; // Importar Objects
 import java.util.Set;
 
 @Entity
-@Data
+// @Data // Quitar
+@Getter // Usar
+@Setter // Usar
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "promocion")
@@ -29,7 +34,7 @@ public class Promocion {
     private String descripcion;
 
     @Column(name = "porcentaje_descuento", precision = 5, scale = 2, nullable = false)
-    private BigDecimal descuento;
+    private BigDecimal descuento; // Renombrado de 'porcentaje_descuento' para claridad
 
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDateTime fechaInicio;
@@ -41,6 +46,22 @@ public class Promocion {
     private boolean activa = true;
 
 
+    // Usar EAGER aquí puede simplificar, pero LAZY es generalmente mejor para rendimiento
     @ManyToMany(mappedBy = "promociones", fetch = FetchType.LAZY)
     private Set<Producto> productos = new HashSet<>();
+
+    // --- Implementación de equals y hashCode ---
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Promocion promocion = (Promocion) o;
+        return idPromocion != null && Objects.equals(idPromocion, promocion.idPromocion);
+    }
+
+    @Override
+    public int hashCode() {
+        return idPromocion != null ? Objects.hash(idPromocion) : getClass().hashCode();
+    }
+    // --- Fin equals y hashCode ---
 }

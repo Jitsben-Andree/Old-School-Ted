@@ -1,46 +1,28 @@
 package com.example.OldSchoolTeed.service.impl;
 
-import com.example.OldSchoolTeed.dto.AdminUpdateEnvioRequest;
-import com.example.OldSchoolTeed.dto.AdminUpdatePagoRequest;
-import com.example.OldSchoolTeed.dto.AdminUpdatePedidoStatusRequest;
-import com.example.OldSchoolTeed.dto.DetallePedidoResponse;
-import com.example.OldSchoolTeed.dto.PedidoRequest;
-import com.example.OldSchoolTeed.dto.PedidoResponse;
-import com.example.OldSchoolTeed.entities.Carrito;
-import com.example.OldSchoolTeed.entities.DetalleCarrito;
-import com.example.OldSchoolTeed.entities.DetallePedido;
-import com.example.OldSchoolTeed.entities.Envio;
-import com.example.OldSchoolTeed.entities.Inventario;
-import com.example.OldSchoolTeed.entities.Pago;
-import com.example.OldSchoolTeed.entities.Pedido;
-import com.example.OldSchoolTeed.entities.Usuario;
-import com.example.OldSchoolTeed.repository.CarritoRepository;
-import com.example.OldSchoolTeed.repository.DetalleCarritoRepository;
-import com.example.OldSchoolTeed.repository.DetallePedidoRepository;
-import com.example.OldSchoolTeed.repository.EnvioRepository;
-import com.example.OldSchoolTeed.repository.InventarioRepository;
-import com.example.OldSchoolTeed.repository.PagoRepository;
-import com.example.OldSchoolTeed.repository.PedidoRepository;
-import com.example.OldSchoolTeed.repository.ProductoRepository;
-import com.example.OldSchoolTeed.repository.UsuarioRepository;
+import com.example.OldSchoolTeed.dto.*; // Importar todos los DTOs
+import com.example.OldSchoolTeed.entities.*; // Importar todas las Entidades
+import com.example.OldSchoolTeed.repository.*; // Importar todos los Repos
 import com.example.OldSchoolTeed.service.PedidoService;
+import com.example.OldSchoolTeed.service.ProductoService; // << Importar ProductoService
 import jakarta.persistence.EntityNotFoundException;
-import org.slf4j.Logger; // Importar Logger
-import org.slf4j.LoggerFactory; // Importar LoggerFactory
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode; // << Importar RoundingMode
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList; // Asegúrate de importar ArrayList
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class PedidoServiceImpl implements PedidoService {
 
-    private static final Logger log = LoggerFactory.getLogger(PedidoServiceImpl.class); // Añadir logger
+    private static final Logger log = LoggerFactory.getLogger(PedidoServiceImpl.class);
     private final PedidoRepository pedidoRepository;
     private final UsuarioRepository usuarioRepository;
     private final CarritoRepository carritoRepository;
@@ -49,7 +31,8 @@ public class PedidoServiceImpl implements PedidoService {
     private final PagoRepository pagoRepository;
     private final EnvioRepository envioRepository;
     private final DetallePedidoRepository detallePedidoRepository;
-    private final ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository; // Aunque no lo usemos directamente aquí, está bien tenerlo
+    private final ProductoService productoService; // << Inyectar ProductoService
 
     public PedidoServiceImpl(PedidoRepository pedidoRepository,
                              UsuarioRepository usuarioRepository,
@@ -59,7 +42,8 @@ public class PedidoServiceImpl implements PedidoService {
                              PagoRepository pagoRepository,
                              EnvioRepository envioRepository,
                              DetallePedidoRepository detallePedidoRepository,
-                             ProductoRepository productoRepository) {
+                             ProductoRepository productoRepository,
+                             ProductoService productoService) { // << Añadir al constructor
         this.pedidoRepository = pedidoRepository;
         this.usuarioRepository = usuarioRepository;
         this.carritoRepository = carritoRepository;
@@ -69,196 +53,234 @@ public class PedidoServiceImpl implements PedidoService {
         this.envioRepository = envioRepository;
         this.detallePedidoRepository = detallePedidoRepository;
         this.productoRepository = productoRepository;
+        this.productoService = productoService; // << Asignar
     }
 
 
     // --- Métodos de Cliente ---
 
     @Override
-    @Transactional // Quitar readOnly = false (default)
+    @Transactional
     public PedidoResponse crearPedidoDesdeCarrito(String usuarioEmail, PedidoRequest request) {
-        // Log al inicio del método
         log.info("Iniciando creación de pedido para usuario: {}", usuarioEmail);
-        try { // Bloque try general para capturar cualquier excepción inesperada durante la creación
+        try {
             Usuario usuario = usuarioRepository.findByEmail(usuarioEmail)
-                    .orElseThrow(() -> {
-                        log.error("Usuario no encontrado al crear pedido: {}", usuarioEmail);
-                        return new EntityNotFoundException("Usuario no encontrado");
-                    });
+                    .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
 
             Carrito carrito = carritoRepository.findByUsuario(usuario)
-                    .orElseThrow(() -> {
-                        log.error("Carrito no encontrado para usuario: {}", usuarioEmail);
-                        return new EntityNotFoundException("Carrito no encontrado.");
-                    });
+                    .orElseThrow(() -> new EntityNotFoundException("Carrito no encontrado."));
 
-            // Asegurarse de que la lista no sea null y cargarla si es LAZY
             List<DetalleCarrito> detallesCarrito = carrito.getDetallesCarrito();
-            if (detallesCarrito == null) {
-                detallesCarrito = new ArrayList<>(); // Inicializar si es null
-                log.warn("La lista detallesCarrito era null para el carrito ID: {}, inicializando.", carrito.getIdCarrito());
-            } else {
-                // Forzar carga si es LAZY (puede evitar errores posteriores)
-                detallesCarrito.size();
-                log.debug("Detalles del carrito cargados ({} items) para carrito ID: {}", detallesCarrito.size(), carrito.getIdCarrito());
-            }
-
+            if (detallesCarrito == null) detallesCarrito = new ArrayList<>();
+            else detallesCarrito.size(); // Forzar carga LAZY
 
             if (detallesCarrito.isEmpty()) {
-                log.warn("Intento de crear pedido con carrito vacío para usuario: {}", usuarioEmail);
                 throw new RuntimeException("El carrito está vacío, no se puede crear un pedido.");
             }
 
             log.info("Validando stock para {} items del carrito ID: {}", detallesCarrito.size(), carrito.getIdCarrito());
             // 1. Validar Stock ANTES de crear el pedido
             for (DetalleCarrito detalle : detallesCarrito) {
+                // ... (lógica de validación de stock existente) ...
                 Integer productoId = detalle.getProducto().getIdProducto();
                 String productoNombre = detalle.getProducto().getNombre();
                 Integer cantidadRequerida = detalle.getCantidad();
-                log.debug("Validando stock para Producto ID: {}, Nombre: {}, Cantidad: {}", productoId, productoNombre, cantidadRequerida);
-
                 Inventario inventario = inventarioRepository.findByProducto(detalle.getProducto())
-                        .orElseThrow(() -> {
-                            log.error("Inventario no encontrado para Producto ID: {}", productoId);
-                            return new EntityNotFoundException("Inventario no encontrado para: " + productoNombre);
-                        });
-
-                log.debug("Stock actual para Producto ID {}: {}", productoId, inventario.getStock());
+                        .orElseThrow(() -> new EntityNotFoundException("Inventario no encontrado para: " + productoNombre));
                 if (inventario.getStock() < cantidadRequerida) {
                     String errorMsg = "Stock insuficiente. No hay " + cantidadRequerida + " unidades de: " + productoNombre + " (Disponibles: " + inventario.getStock() + ")";
-                    log.error("!!! ERROR DE STOCK: {} !!!", errorMsg); // Log de error específico
-                    throw new RuntimeException(errorMsg); // Lanzar excepción que causa el 400
+                    log.error("!!! ERROR DE STOCK: {} !!!", errorMsg);
+                    throw new RuntimeException(errorMsg);
                 }
             }
-            log.info("Validación de stock completada con éxito.");
+            log.info("Validación de stock completada.");
+
+            // --- Calcular Total y Descuentos ---
+            BigDecimal totalPedidoConDescuento = BigDecimal.ZERO;
+            List<DetallePedidoInfo> detallesParaGuardar = new ArrayList<>(); // Lista temporal para guardar info calculada
+
+            log.info("Calculando precios finales y descuentos para los detalles...");
+            for(DetalleCarrito detalleCarrito : detallesCarrito) {
+                // Obtener ProductoResponse (ya tiene el precio con descuento)
+                ProductoResponse productoDto = productoService.getProductoById(detalleCarrito.getProducto().getIdProducto());
+                BigDecimal precioUnitarioFinal = productoDto.getPrecio(); // Precio con descuento
+                BigDecimal precioUnitarioOriginal = productoDto.getPrecioOriginal(); // Precio base
+                BigDecimal subtotalFinal = precioUnitarioFinal.multiply(BigDecimal.valueOf(detalleCarrito.getCantidad()))
+                        .setScale(2, RoundingMode.HALF_UP); // Redondear subtotal
+
+                // Calcular el monto de descuento para este item (precio original - precio final) * cantidad
+                BigDecimal montoDescuentoItem = (precioUnitarioOriginal.subtract(precioUnitarioFinal))
+                        .multiply(BigDecimal.valueOf(detalleCarrito.getCantidad()))
+                        .setScale(2, RoundingMode.HALF_UP); // Redondear descuento
+
+                totalPedidoConDescuento = totalPedidoConDescuento.add(subtotalFinal);
+
+                // Guardar info temporal para crear DetallePedido después
+                detallesParaGuardar.add(new DetallePedidoInfo(detalleCarrito.getProducto(), // Pasar Producto
+                        detalleCarrito.getCantidad(), // Pasar Cantidad
+                        subtotalFinal,
+                        montoDescuentoItem));
+
+                log.debug("Detalle Carrito ID {}: Prod ID {}, Cant {}, Precio Orig {}, Precio Final {}, Subtotal {}, Descuento {}",
+                        detalleCarrito.getIdDetalleCarrito(), productoDto.getId(), detalleCarrito.getCantidad(),
+                        precioUnitarioOriginal, precioUnitarioFinal, subtotalFinal, montoDescuentoItem);
+            }
+            log.info("Total del pedido calculado con descuentos: {}", totalPedidoConDescuento);
+            // --- Fin Cálculo ---
+
 
             // 2. Crear Pedido
             log.info("Creando entidad Pedido...");
             Pedido pedido = new Pedido();
             pedido.setUsuario(usuario);
-            // fecha y estado se setean con @PrePersist
-            // pedido.setFecha(LocalDateTime.now());
-            // pedido.setEstado(Pedido.EstadoPedido.PENDIENTE);
-
-            BigDecimal total = detallesCarrito.stream()
-                    .map(detalle -> detalle.getProducto().getPrecio().multiply(BigDecimal.valueOf(detalle.getCantidad())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            pedido.setTotal(total);
-            log.debug("Total del pedido calculado: {}", total);
+            pedido.setTotal(totalPedidoConDescuento); // <<< Usar total con descuento
+            // estado y fecha se setean por @PrePersist
 
             Pedido pedidoGuardado = pedidoRepository.save(pedido);
             log.info("Pedido guardado con ID: {}", pedidoGuardado.getIdPedido());
 
-            // 3. Crear Pago y Envío (iniciales)
+            // 3. Crear Pago y Envío (usando el total con descuento)
             log.info("Creando entidades Pago y Envío...");
+            // ... (lógica existente para parsear metodoPago y validar dirección) ...
             Pago.MetodoPago metodoPago;
-            // Validar que el método de pago no sea null o vacío antes de convertir
-            if (request.getMetodoPagoInfo() == null || request.getMetodoPagoInfo().trim().isEmpty()) {
-                log.error("!!! ERROR DE METODO DE PAGO: Método de pago recibido es null o vacío !!!");
-                throw new RuntimeException("Debe seleccionar un método de pago.");
-            }
-            String metodoPagoInfoUpper = request.getMetodoPagoInfo().toUpperCase();
-            try {
-                metodoPago = Pago.MetodoPago.valueOf(metodoPagoInfoUpper);
-                log.debug("Método de pago parseado: {}", metodoPago);
-            } catch (IllegalArgumentException e) {
-                log.error("!!! ERROR DE METODO DE PAGO: Método inválido recibido: '{}' (intentó buscar '{}') !!!", request.getMetodoPagoInfo(), metodoPagoInfoUpper, e); // Log de error específico
-                throw new RuntimeException("Método de pago no válido: " + request.getMetodoPagoInfo()); // Lanzar excepción
-            }
+            if (request.getMetodoPagoInfo() == null || request.getMetodoPagoInfo().trim().isEmpty()) { throw new RuntimeException("Debe seleccionar un método de pago."); }
+            try { metodoPago = Pago.MetodoPago.valueOf(request.getMetodoPagoInfo().toUpperCase()); }
+            catch (IllegalArgumentException e) { throw new RuntimeException("Método de pago no válido: " + request.getMetodoPagoInfo()); }
+
+            if (request.getDireccionEnvio() == null || request.getDireccionEnvio().trim().isEmpty()) { throw new RuntimeException("Debe ingresar una dirección de envío.");}
 
             Pago pago = new Pago();
             pago.setPedido(pedidoGuardado);
             pago.setMetodo(metodoPago);
-            pago.setMonto(total);
-            // fechaPago y estado se setean con @PrePersist
+            pago.setMonto(totalPedidoConDescuento); // <<< Usar total con descuento
             Pago pagoGuardado = pagoRepository.save(pago);
             log.debug("Pago guardado con ID: {}", pagoGuardado.getIdPago());
 
-            // Validar que la dirección de envío no sea null o vacía
-            if (request.getDireccionEnvio() == null || request.getDireccionEnvio().trim().isEmpty()) {
-                log.error("!!! ERROR DE DIRECCION: Dirección de envío recibida es null o vacía !!!");
-                throw new RuntimeException("Debe ingresar una dirección de envío.");
-            }
             Envio envio = new Envio();
             envio.setPedido(pedidoGuardado);
             envio.setDireccionEnvio(request.getDireccionEnvio());
-            // fechaEnvio es null y estado se setea con @PrePersist
             Envio envioGuardado = envioRepository.save(envio);
             log.debug("Envío guardado con ID: {}", envioGuardado.getIdEnvio());
 
 
-            // 4. Mover detalles de Carrito a Pedido y Actualizar Stock
-            log.info("Moviendo detalles de Carrito a Pedido y actualizando stock...");
+            // 4. Crear Detalles de Pedido (usando la info calculada) y Actualizar Stock
+            log.info("Creando Detalles de Pedido y actualizando stock...");
             List<DetallePedido> detallesPedidoGuardados = new ArrayList<>();
-            // Crear copia para iterar y eliminar de la original de forma segura
             List<DetalleCarrito> detallesAEliminar = new ArrayList<>(detallesCarrito);
 
-            for (DetalleCarrito detalle : detallesAEliminar) {
-                log.debug("Procesando DetalleCarrito ID: {}", detalle.getIdDetalleCarrito());
-                // Crear detalle de pedido
+            for (DetallePedidoInfo info : detallesParaGuardar) {
+                // El detalle original del carrito ya no se necesita aquí, usamos la info guardada
+                log.debug("Procesando info para Producto ID: {}", info.producto.getIdProducto());
+
+                // Crear detalle de pedido con info calculada
                 DetallePedido detallePedido = new DetallePedido();
                 detallePedido.setPedido(pedidoGuardado);
-                detallePedido.setProducto(detalle.getProducto());
-                detallePedido.setCantidad(detalle.getCantidad());
-                detallePedido.setSubtotal(detalle.getProducto().getPrecio().multiply(BigDecimal.valueOf(detalle.getCantidad())));
-                detallePedido.setMontoDescuento(BigDecimal.ZERO);
+                detallePedido.setProducto(info.producto); // Usar Producto de DetallePedidoInfo
+                detallePedido.setCantidad(info.cantidad); // Usar Cantidad de DetallePedidoInfo
+                detallePedido.setSubtotal(info.subtotalConDescuento);   // <<< Subtotal con descuento
+                detallePedido.setMontoDescuento(info.montoDescuento); // <<< Monto de descuento
                 DetallePedido detallePedidoGuardado = detallePedidoRepository.save(detallePedido);
                 detallesPedidoGuardados.add(detallePedidoGuardado);
-                log.debug("DetallePedido creado con ID: {}", detallePedidoGuardado.getIdDetallePedido());
+                log.debug("DetallePedido creado ID: {}, Subtotal: {}, Descuento: {}",
+                        detallePedidoGuardado.getIdDetallePedido(), info.subtotalConDescuento, info.montoDescuento);
 
-
-                // Actualizar inventario (Reducir stock)
-                // Usar .get() es seguro aquí porque ya validamos la existencia del inventario antes
-                Inventario inventario = inventarioRepository.findByProducto(detalle.getProducto()).get();
+                // Actualizar inventario (igual que antes)
+                Inventario inventario = inventarioRepository.findByProducto(info.producto).get();
                 int stockAnterior = inventario.getStock();
-                int nuevoStock = stockAnterior - detalle.getCantidad();
-                // Doble check de seguridad (aunque ya validamos antes)
-                if (nuevoStock < 0) {
-                    log.error("!!! ERROR DE STOCK CRÍTICO: Intento de dejar stock negativo para Producto ID {} !!!", detalle.getProducto().getIdProducto());
-                    throw new RuntimeException("Error crítico de stock al actualizar inventario para: " + detalle.getProducto().getNombre());
-                }
+                int nuevoStock = stockAnterior - info.cantidad; // Usar cantidad de DetallePedidoInfo
+                if (nuevoStock < 0) { throw new RuntimeException("Error crítico de stock al actualizar inventario."); } // Seguridad extra
                 inventario.setStock(nuevoStock);
                 inventarioRepository.save(inventario);
-                log.debug("Stock actualizado para Producto ID {}: {} -> {}", detalle.getProducto().getIdProducto(), stockAnterior, inventario.getStock());
-
-
-                // Eliminar de detalle_carrito (ahora seguro porque iteramos sobre una copia)
-                detalleCarritoRepository.delete(detalle);
-                log.debug("DetalleCarrito ID {} eliminado", detalle.getIdDetalleCarrito());
-
+                log.debug("Stock actualizado para Producto ID {}: {} -> {}", info.producto.getIdProducto(), stockAnterior, inventario.getStock());
             }
+
+            // Eliminar todos los detalles del carrito original de una vez
+            log.debug("Eliminando {} detalles del Carrito ID {}", detallesAEliminar.size(), carrito.getIdCarrito());
+            detalleCarritoRepository.deleteAll(detallesAEliminar);
+
+
             // Limpiar la lista original del carrito en memoria y persistir el cambio
             carrito.getDetallesCarrito().clear();
             carritoRepository.save(carrito);
             log.info("Todos los detalles movidos y carrito vaciado.");
 
-            // 5. Asociar colecciones al pedido guardado (importante para mapToPedidoResponse)
+            // 5. Asociar colecciones y devolver
             pedidoGuardado.setPago(pagoGuardado);
             pedidoGuardado.setEnvio(envioGuardado);
             pedidoGuardado.setDetallesPedido(detallesPedidoGuardados);
             log.info("Asociaciones finales completadas para Pedido ID: {}", pedidoGuardado.getIdPedido());
 
-            // Devolver el pedido mapeado
             return mapToPedidoResponse(pedidoGuardado);
 
-            // --- Bloques Catch Mejorados ---
-        } catch (EntityNotFoundException e) {
-            // Captura errores específicos de "no encontrado"
-            log.error("!!! ERROR - Entidad no encontrada al crear pedido para {}: {} !!!", usuarioEmail, e.getMessage());
-            // Lanzar como RuntimeException para que resulte en 404 o 400 según el controlador
-            throw new RuntimeException("Error al procesar el pedido: " + e.getMessage());
         } catch (RuntimeException e) {
-            // Captura cualquier RuntimeException explícita (Stock, Método Pago, Carrito Vacío, etc.)
-            log.error("!!! ERROR de lógica de negocio al crear pedido para {}: {} !!!", usuarioEmail, e.getMessage());
-            throw e; // Re-lanzar para que el controlador devuelva 400 con el mensaje específico
+            log.error("!!! ERROR al crear pedido para {}: {} !!!", usuarioEmail, e.getMessage());
+            throw e;
         } catch (Exception e) {
-            // Captura cualquier otra excepción inesperada (ej. problemas de base de datos)
             log.error("!!! ERROR INESPERADO al crear pedido para {}: {} !!!", usuarioEmail, e.getMessage(), e);
-            // Lanzar una genérica para no exponer detalles internos
-            throw new RuntimeException("Ocurrió un error inesperado al procesar el pedido. Por favor, intente de nuevo más tarde.");
+            throw new RuntimeException("Ocurrió un error inesperado al procesar el pedido.");
         }
     }
 
+    // Clase helper interna para guardar info calculada de detalles
+    // Modificada para almacenar Producto y Cantidad directamente
+    private static class DetallePedidoInfo {
+        Producto producto; // Almacenar el objeto Producto
+        Integer cantidad;  // Almacenar la cantidad
+        BigDecimal subtotalConDescuento;
+        BigDecimal montoDescuento;
+
+        DetallePedidoInfo(Producto producto, Integer cantidad, BigDecimal subtotalConDescuento, BigDecimal montoDescuento) {
+            this.producto = producto;
+            this.cantidad = cantidad;
+            this.subtotalConDescuento = subtotalConDescuento;
+            this.montoDescuento = montoDescuento;
+        }
+    }
+
+
+    // --- El resto de los métodos (getPedidosByUsuario, getPedidoById, Admin, mapToPedidoResponse) ---
+
+    // Asegurarse de que mapToPedidoResponse devuelva el precio unitario original
+    private PedidoResponse mapToPedidoResponse(Pedido pedido) {
+        // ... (resto del mapeo) ...
+        List<DetallePedido> detalles = pedido.getDetallesPedido();
+        if (detalles == null) detalles = new ArrayList<>();
+        else detalles.size(); // Forzar carga LAZY
+
+        List<DetallePedidoResponse> detallesResponse = detalles.stream()
+                .map(detalle -> {
+                    BigDecimal precioOriginalUnitario = (detalle.getProducto() != null) ? detalle.getProducto().getPrecio() : BigDecimal.ZERO;
+
+                    return DetallePedidoResponse.builder()
+                            // ... (otros campos) ...
+                            .detallePedidoId(detalle.getIdDetallePedido())
+                            .productoId(detalle.getProducto() != null ? detalle.getProducto().getIdProducto() : -1)
+                            .productoNombre(detalle.getProducto() != null ? detalle.getProducto().getNombre() : "Producto Desconocido")
+                            .cantidad(detalle.getCantidad() != null ? detalle.getCantidad() : 0)
+                            .precioUnitario(precioOriginalUnitario) // <<< Devolver el precio original unitario aquí
+                            .subtotal(detalle.getSubtotal() != null ? detalle.getSubtotal() : BigDecimal.ZERO) // <<< Este es el subtotal CON descuento
+                            .montoDescuento(detalle.getMontoDescuento() != null ? detalle.getMontoDescuento() : BigDecimal.ZERO) // Manejar null
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // ... (resto del mapeo) ...
+        Pago pago = pedido.getPago();
+        Envio envio = pedido.getEnvio();
+        return PedidoResponse.builder()
+                .pedidoId(pedido.getIdPedido())
+                .fecha(pedido.getFecha())
+                .estado(pedido.getEstado() != null ? pedido.getEstado().name() : "DESCONOCIDO")
+                .total(pedido.getTotal() != null ? pedido.getTotal() : BigDecimal.ZERO) // Este es el total CON descuento
+                .detalles(detallesResponse)
+                .direccionEnvio(envio != null ? envio.getDireccionEnvio() : "N/A")
+                .estadoEnvio(envio != null && envio.getEstado() != null ? envio.getEstado().name() : "N/A")
+                .estadoPago(pago != null && pago.getEstado() != null ? pago.getEstado().name() : "N/A")
+                .metodoPago(pago != null && pago.getMetodo() != null ? pago.getMetodo().name() : "N/A")
+                .build();
+    }
+    // --- Resto de métodos de Admin ---
+    // ... (getAllPedidosAdmin, updatePedidoStatusAdmin, etc.) ...
     @Override
     @Transactional(readOnly = true)
     public List<PedidoResponse> getPedidosByUsuario(String usuarioEmail) {
@@ -471,7 +493,7 @@ public class PedidoServiceImpl implements PedidoService {
             log.debug("Admin: Entidad Envío guardada para pedido ID {}", pedidoId);
         }
 
-        // Guardar el pedido solo si se modificó su estado o si se asoció un envío nuevo
+        // Guardar el pedido solo si se modificó su estado o se asoció un envío nuevo
         if (estadoPedidoModificado) {
             pedidoRepository.save(pedido);
             log.debug("Admin: Entidad Pedido guardada debido a cambios en envío para ID {}", pedidoId);
@@ -480,67 +502,6 @@ public class PedidoServiceImpl implements PedidoService {
         // Recargar el pedido para asegurar que la respuesta incluya todas las asociaciones actualizadas
         Pedido pedidoFinal = pedidoRepository.findById(pedidoId).get();
         return mapToPedidoResponse(pedidoFinal);
-    }
-
-
-    // --- Lógica de Mapeo (Helper) ---
-    private PedidoResponse mapToPedidoResponse(Pedido pedido) {
-        // Asegurarse de que la lista de detalles no sea null y forzar carga si es LAZY
-        List<DetallePedido> detalles = pedido.getDetallesPedido();
-        if (detalles == null) {
-            detalles = new ArrayList<>();
-            log.warn("La lista detallesPedido era null para Pedido ID {}, inicializando.", pedido.getIdPedido());
-        } else {
-            // Forzar carga LAZY
-            detalles.size();
-        }
-
-        List<DetallePedidoResponse> detallesResponse = detalles.stream()
-                .map(detalle -> {
-                    // Verificación de producto null en detalle
-                    String nombreProducto = (detalle.getProducto() != null) ? detalle.getProducto().getNombre() : "Producto Desconocido";
-                    Integer idProducto = (detalle.getProducto() != null) ? detalle.getProducto().getIdProducto() : -1; // Usar -1 o lanzar error si prefieres
-                    BigDecimal precioUnitario = (detalle.getProducto() != null) ? detalle.getProducto().getPrecio() : BigDecimal.ZERO;
-
-                    if (detalle.getProducto() == null) {
-                        log.warn("DetallePedido ID {} tiene un Producto null.", detalle.getIdDetallePedido());
-                    }
-
-                    return DetallePedidoResponse.builder()
-                            .detallePedidoId(detalle.getIdDetallePedido())
-                            .productoId(idProducto)
-                            .productoNombre(nombreProducto)
-                            .cantidad(detalle.getCantidad() != null ? detalle.getCantidad() : 0) // Manejar null
-                            .precioUnitario(precioUnitario)
-                            .subtotal(detalle.getSubtotal() != null ? detalle.getSubtotal() : BigDecimal.ZERO) // Manejar null
-                            .montoDescuento(detalle.getMontoDescuento() != null ? detalle.getMontoDescuento() : BigDecimal.ZERO) // Manejar null
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        // Obtener info de pago y envío (manejando nulls)
-        Pago pago = pedido.getPago();
-        Envio envio = pedido.getEnvio();
-
-        // Logging para depurar valores null antes de construir la respuesta
-        log.trace("Mapeando Pedido ID: {}. Estado: {}, Total: {}, Pago: {}, Envío: {}",
-                pedido.getIdPedido(), pedido.getEstado(), pedido.getTotal(),
-                (pago != null ? "ID:" + pago.getIdPago() : "null"),
-                (envio != null ? "ID:" + envio.getIdEnvio() : "null"));
-
-
-        return PedidoResponse.builder()
-                .pedidoId(pedido.getIdPedido())
-                .fecha(pedido.getFecha())
-                // Manejar null para Enums y valores
-                .estado(pedido.getEstado() != null ? pedido.getEstado().name() : "DESCONOCIDO")
-                .total(pedido.getTotal() != null ? pedido.getTotal() : BigDecimal.ZERO)
-                .detalles(detallesResponse)
-                .direccionEnvio(envio != null ? envio.getDireccionEnvio() : "N/A")
-                .estadoEnvio(envio != null && envio.getEstado() != null ? envio.getEstado().name() : "N/A")
-                .estadoPago(pago != null && pago.getEstado() != null ? pago.getEstado().name() : "N/A")
-                .metodoPago(pago != null && pago.getMetodo() != null ? pago.getMetodo().name() : "N/A")
-                .build();
     }
 }
 
