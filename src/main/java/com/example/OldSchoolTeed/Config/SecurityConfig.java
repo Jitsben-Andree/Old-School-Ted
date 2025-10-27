@@ -40,10 +40,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/files/uploads/**").permitAll()
+                        .requestMatchers("/error").permitAll() // <<< AÑADIR ESTA LÍNEA
 
-                        // --- RUTA DE ADMIN (CORREGIDA) ---
-                        // Cualquier ruta bajo /admin/** requiere rol Administrador
-                        .requestMatchers("/admin/**").hasAuthority("Administrador") // <<< REGLA CORRECTA
+                        // --- RUTAS DE ADMIN (Agrupadas) ---
+                        .requestMatchers("/admin/**").hasAuthority("Administrador")
 
                         // --- RUTAS DE CLIENTE (o Admin) ---
                         .requestMatchers("/carrito/**").hasAnyAuthority("Cliente", "Administrador")

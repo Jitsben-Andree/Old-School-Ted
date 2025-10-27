@@ -3,22 +3,24 @@ package com.example.OldSchoolTeed.service.impl;
 import com.example.OldSchoolTeed.dto.AddItemRequest;
 import com.example.OldSchoolTeed.dto.CarritoResponse;
 import com.example.OldSchoolTeed.dto.DetalleCarritoResponse;
-import com.example.OldSchoolTeed.dto.ProductoResponse; // Importar ProductoResponse
+import com.example.OldSchoolTeed.dto.ProductoResponse;
+import com.example.OldSchoolTeed.dto.UpdateCantidadRequest;
 import com.example.OldSchoolTeed.entities.*;
 import com.example.OldSchoolTeed.repository.*;
 import com.example.OldSchoolTeed.service.CarritoService;
-import com.example.OldSchoolTeed.service.ProductoService; // Importar ProductoService
+import com.example.OldSchoolTeed.service.ProductoService;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid; // Importar Valid
-import org.slf4j.Logger; // Importar Logger
-import org.slf4j.LoggerFactory; // Importar LoggerFactory
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList; // Importar ArrayList
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,236 +28,190 @@ import java.util.stream.Collectors;
 @Service
 public class CarritoServiceImpl implements CarritoService {
 
-    private static final Logger log = LoggerFactory.getLogger(CarritoServiceImpl.class); // Añadir logger
+    private static final Logger log = LoggerFactory.getLogger(CarritoServiceImpl.class);
     private final CarritoRepository carritoRepository;
     private final DetalleCarritoRepository detalleCarritoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
-    private final InventarioRepository inventarioRepository;
-    private final ProductoService productoService; // Inyectar ProductoService
+    private final InventarioRepository inventarioRepository; // Asegúrate que esté inyectado
+    private final ProductoService productoService;
 
+    // ... (Constructor existente) ...
     public CarritoServiceImpl(CarritoRepository carritoRepository,
                               DetalleCarritoRepository detalleCarritoRepository,
                               UsuarioRepository usuarioRepository,
                               ProductoRepository productoRepository,
-                              InventarioRepository inventarioRepository,
-                              ProductoService productoService) { // Añadir ProductoService
+                              InventarioRepository inventarioRepository, // Asegurar inyección
+                              ProductoService productoService) {
         this.carritoRepository = carritoRepository;
         this.detalleCarritoRepository = detalleCarritoRepository;
         this.usuarioRepository = usuarioRepository;
         this.productoRepository = productoRepository;
-        this.inventarioRepository = inventarioRepository;
-        this.productoService = productoService; // Asignar
+        this.inventarioRepository = inventarioRepository; // Asignar
+        this.productoService = productoService;
     }
+
 
     // --- Lógica de Mapeo (Helper) ---
     private CarritoResponse mapToCarritoResponse(Carrito carrito) {
         log.trace("Mapeando Carrito ID: {}", carrito.getIdCarrito());
-        // Asegurarse de que la lista no sea null antes de hacer stream
-        List<DetalleCarrito> detalles = carrito.getDetallesCarrito() != null ? carrito.getDetallesCarrito() : new ArrayList<>();
+        List<DetalleCarrito> detalles = carrito.getDetallesCarrito() != null ? carrito.getDetallesCarrito() : Collections.emptyList(); // Usar Collections.emptyList()
 
         List<DetalleCarritoResponse> itemResponses = detalles.stream()
                 .map(detalle -> {
-                    // Obtener el ProductoResponse (que ya tiene el precio con descuento calculado)
-                    // Usamos try-catch por si el producto fue desactivado mientras estaba en el carrito
                     ProductoResponse productoConDescuento;
+                    String imageUrl = null;
+                    int stockActual = 0; // <<< Variable para guardar el stock
+
                     try {
                         productoConDescuento = productoService.getProductoById(detalle.getProducto().getIdProducto());
+                        imageUrl = productoConDescuento.getImageUrl();
+                        // <<< Buscar stock actual del inventario >>>
+                        Inventario inventario = inventarioRepository.findByProducto(detalle.getProducto())
+                                .orElse(null); // Obtener inventario o null si no existe
+                        if (inventario != null) {
+                            stockActual = inventario.getStock();
+                        } else {
+                            log.warn("¡Inventario no encontrado para Producto ID {} al mapear carrito!", detalle.getProducto().getIdProducto());
+                        }
+                        // <<< Fin búsqueda de stock >>>
+
                     } catch (EntityNotFoundException e) {
-                        log.warn("Producto ID {} en DetalleCarrito ID {} no encontrado al mapear. Usando precio 0.",
+                        log.warn("Producto ID {} en DetalleCarrito ID {} no encontrado al mapear. Usando defaults.",
                                 detalle.getProducto().getIdProducto(), detalle.getIdDetalleCarrito());
-                        // Crear un DTO temporal si el producto no se encuentra para evitar NullPointerException
                         productoConDescuento = ProductoResponse.builder()
                                 .id(detalle.getProducto().getIdProducto())
                                 .nombre(detalle.getProducto().getNombre() + " (No disponible)")
-                                .precio(BigDecimal.ZERO)
-                                .precioOriginal(BigDecimal.ZERO)
-                                .build();
+                                .precio(BigDecimal.ZERO).precioOriginal(BigDecimal.ZERO).build();
+                        stockActual = 0; // Stock 0 si el producto no se encuentra
                     }
 
-                    BigDecimal precioUnitarioFinal = productoConDescuento.getPrecio(); // Este es el precio con descuento si aplica
-
-                    log.trace("Mapeando DetalleCarrito ID: {}, Producto ID: {}, Cantidad: {}, Precio Final: {}",
-                            detalle.getIdDetalleCarrito(), detalle.getProducto().getIdProducto(), detalle.getCantidad(), precioUnitarioFinal);
+                    BigDecimal precioUnitarioFinal = productoConDescuento.getPrecio();
+                    log.trace("Mapeando DetalleCarrito ID: {}, Producto ID: {}, Cantidad: {}, Precio Final: {}, Stock: {}",
+                            detalle.getIdDetalleCarrito(), detalle.getProducto().getIdProducto(), detalle.getCantidad(), precioUnitarioFinal, stockActual);
 
                     return DetalleCarritoResponse.builder()
                             .detalleCarritoId(detalle.getIdDetalleCarrito())
                             .productoId(detalle.getProducto().getIdProducto())
                             .productoNombre(detalle.getProducto().getNombre())
                             .cantidad(detalle.getCantidad())
-                            .precioUnitario(precioUnitarioFinal) // <<< Usar precio con descuento
-                            .subtotal(precioUnitarioFinal.multiply(BigDecimal.valueOf(detalle.getCantidad()))) // <<< Calcular subtotal con descuento
-                            .imageUrl(detalle.getProducto().getImageUrl()) // Añadir si ya tienes imágenes
+                            .precioUnitario(precioUnitarioFinal)
+                            .subtotal(precioUnitarioFinal.multiply(BigDecimal.valueOf(detalle.getCantidad())))
+                            .imageUrl(imageUrl)
+                            .stockActual(stockActual) // <<< Añadir stock al builder
                             .build();
                 })
                 .collect(Collectors.toList());
 
-        // Recalcular el total basado en los subtotales con descuento
-        BigDecimal totalConDescuento = itemResponses.stream()
-                .map(DetalleCarritoResponse::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        log.debug("Total del carrito ID {} calculado con descuentos: {}", carrito.getIdCarrito(), totalConDescuento);
-
+        BigDecimal totalConDescuento = itemResponses.stream().map(DetalleCarritoResponse::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        log.debug("Total carrito ID {} con descuentos: {}", carrito.getIdCarrito(), totalConDescuento);
 
         return CarritoResponse.builder()
                 .carritoId(carrito.getIdCarrito())
                 .usuarioId(carrito.getUsuario().getIdUsuario())
                 .items(itemResponses)
-                .total(totalConDescuento) // <<< Usar total con descuento
+                .total(totalConDescuento)
                 .build();
     }
 
-    // --- Lógica de Negocio (Helper) ---
-    private Carrito getOrCreateCarrito(Usuario usuario) {
+    // ... (Resto de los métodos: getOrCreateCarrito, getCarritoByUsuario, addItemToCarrito, removeItemFromCarrito, updateItemQuantity sin cambios)...
+    private Carrito getOrCreateCarrito(Usuario usuario) { /* ... código existente ... */
         log.debug("Buscando o creando carrito para usuario ID: {}", usuario.getIdUsuario());
-        // Usar FETCH JOIN para cargar detalles eficientemente si se define el método en el repo
-        // Optional<Carrito> carritoOpt = carritoRepository.findByUsuarioWithDetails(usuario);
         Optional<Carrito> carritoOpt = carritoRepository.findByUsuario(usuario);
-
-
         return carritoOpt.orElseGet(() -> {
-            log.info("No se encontró carrito para usuario ID {}, creando uno nuevo.", usuario.getIdUsuario());
+            log.info("Creando nuevo carrito para usuario ID {}.", usuario.getIdUsuario());
             Carrito nuevoCarrito = new Carrito();
             nuevoCarrito.setUsuario(usuario);
-            // fechaCreacion se setea con @PrePersist
-            nuevoCarrito.setDetallesCarrito(new ArrayList<>()); // Inicializar lista
+            nuevoCarrito.setDetallesCarrito(new ArrayList<>());
             return carritoRepository.save(nuevoCarrito);
         });
     }
-
     @Override
-    @Transactional // Permitir escritura para getOrCreateCarrito
-    public CarritoResponse getCarritoByUsuario(String userEmail) {
+    @Transactional
+    public CarritoResponse getCarritoByUsuario(String userEmail) { /* ... código existente ... */
         log.info("Obteniendo carrito para usuario: {}", userEmail);
-        Usuario usuario = usuarioRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        Usuario usuario = usuarioRepository.findByEmail(userEmail).orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
         Carrito carrito = getOrCreateCarrito(usuario);
-        // Forzar la carga de detalles si es LAZY (puede ayudar con NullPointerException)
         if(carrito.getDetallesCarrito() != null) carrito.getDetallesCarrito().size();
         return mapToCarritoResponse(carrito);
     }
-
     @Override
     @Transactional
-    public CarritoResponse addItemToCarrito(String userEmail, @Valid AddItemRequest request) { // Añadir @Valid
-        log.info("Añadiendo item al carrito para usuario: {}, Producto ID: {}, Cantidad: {}", userEmail, request.getProductoId(), request.getCantidad());
-
-        // 1. Obtener usuario y producto (con validación clara)
-        Usuario usuario = usuarioRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado con email: " + userEmail));
-        Producto producto = productoRepository.findById(request.getProductoId())
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + request.getProductoId()));
-
-        // La validación @Min(1) en AddItemRequest ya cubre cantidad <= 0 si @Valid está presente
-        // Pero añadimos un check extra por seguridad
-        if (request.getCantidad() == null || request.getCantidad() <= 0) {
-            log.warn("Intento de añadir cantidad inválida ({}) para Producto ID {} por Usuario {}",
-                    request.getCantidad(), request.getProductoId(), userEmail);
-            throw new RuntimeException("La cantidad debe ser mayor que cero.");
-        }
-
-
-        // 2. Validar Stock (con validación clara y mensaje específico)
-        Inventario inventario = inventarioRepository.findByProducto(producto)
-                .orElseThrow(() -> new EntityNotFoundException("Inventario no encontrado para el producto ID: " + request.getProductoId()));
-
-        // 3. Obtener o crear carrito
+    public CarritoResponse addItemToCarrito(String userEmail, @Valid AddItemRequest request) { /* ... código existente ... */
+        log.info("Añadiendo item al carrito para {}: Prod ID {}, Cant {}", userEmail, request.getProductoId(), request.getCantidad());
+        Usuario usuario = usuarioRepository.findByEmail(userEmail).orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + userEmail));
+        Producto producto = productoRepository.findById(request.getProductoId()).orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + request.getProductoId()));
+        if (request.getCantidad() == null || request.getCantidad() <= 0) { throw new RuntimeException("La cantidad debe ser mayor que cero."); }
+        Inventario inventario = inventarioRepository.findByProducto(producto).orElseThrow(() -> new EntityNotFoundException("Inventario no encontrado para producto ID: " + request.getProductoId()));
         Carrito carrito = getOrCreateCarrito(usuario);
-
-        // 4. Verificar si el producto ya está en el carrito
-        // Asegurarse de que la lista no sea null
         List<DetalleCarrito> detallesActuales = carrito.getDetallesCarrito() != null ? carrito.getDetallesCarrito() : new ArrayList<>();
-        Optional<DetalleCarrito> itemExistente = detallesActuales.stream()
-                .filter(detalle -> detalle.getProducto().getIdProducto().equals(request.getProductoId()))
-                .findFirst();
-
-        int cantidadNecesariaTotal;
-
-        if (itemExistente.isPresent()) {
-            cantidadNecesariaTotal = itemExistente.get().getCantidad() + request.getCantidad();
-            log.debug("Producto ID {} ya existe en carrito ID {}. Cantidad anterior: {}, Nueva cantidad total: {}",
-                    request.getProductoId(), carrito.getIdCarrito(), itemExistente.get().getCantidad(), cantidadNecesariaTotal);
-        } else {
-            cantidadNecesariaTotal = request.getCantidad();
-            log.debug("Producto ID {} es nuevo en carrito ID {}. Cantidad a añadir: {}",
-                    request.getProductoId(), carrito.getIdCarrito(), cantidadNecesariaTotal);
-        }
-
-        // 5. Validar stock ANTES de modificar el carrito
+        Optional<DetalleCarrito> itemExistente = detallesActuales.stream().filter(d -> d.getProducto().getIdProducto().equals(request.getProductoId())).findFirst();
+        int cantidadNecesariaTotal = itemExistente.map(detalleCarrito -> detalleCarrito.getCantidad() + request.getCantidad()).orElseGet(request::getCantidad);
         log.debug("Validando stock. Disponible: {}, Necesario: {}", inventario.getStock(), cantidadNecesariaTotal);
         if (inventario.getStock() < cantidadNecesariaTotal) {
-            String errorMsg = "Stock insuficiente para '" + producto.getNombre() + "'. Stock disponible: " + inventario.getStock() + ", necesitas en total: " + cantidadNecesariaTotal;
-            log.error(errorMsg);
-            throw new RuntimeException(errorMsg);
+            String errorMsg = "Stock insuficiente para '" + producto.getNombre() + "'. Stock: " + inventario.getStock() + ", necesitas: " + cantidadNecesariaTotal;
+            log.error(errorMsg); throw new RuntimeException(errorMsg);
         }
-        log.debug("Stock validado con éxito.");
-
-
-        // 6. Ahora sí, modificar el carrito
+        log.debug("Stock OK.");
         if (itemExistente.isPresent()) {
-            // Actualizar cantidad si ya existe
             DetalleCarrito detalle = itemExistente.get();
             detalle.setCantidad(cantidadNecesariaTotal);
-            detalleCarritoRepository.save(detalle);
-            log.info("Cantidad actualizada para DetalleCarrito ID {} a {}", detalle.getIdDetalleCarrito(), cantidadNecesariaTotal);
+            detalleCarritoRepository.save(detalle); log.info("Cantidad actualizada DetalleID {} a {}", detalle.getIdDetalleCarrito(), cantidadNecesariaTotal);
         } else {
-            // Añadir nuevo item si no existe
             DetalleCarrito nuevoDetalle = new DetalleCarrito();
-            nuevoDetalle.setCarrito(carrito);
-            nuevoDetalle.setProducto(producto);
-            nuevoDetalle.setCantidad(request.getCantidad());
-            // Guardamos el detalle y lo añadimos a la colección del carrito
+            nuevoDetalle.setCarrito(carrito); nuevoDetalle.setProducto(producto); nuevoDetalle.setCantidad(request.getCantidad());
             DetalleCarrito detalleGuardado = detalleCarritoRepository.save(nuevoDetalle);
-            // Asegurar que la colección esté inicializada antes de añadir
-            if (carrito.getDetallesCarrito() == null) {
-                carrito.setDetallesCarrito(new ArrayList<>());
-            }
-            carrito.getDetallesCarrito().add(detalleGuardado); // Añadir a la lista en memoria
-            log.info("Nuevo DetalleCarrito creado con ID {} para Carrito ID {}", detalleGuardado.getIdDetalleCarrito(), carrito.getIdCarrito());
-
+            if (carrito.getDetallesCarrito() == null) carrito.setDetallesCarrito(new ArrayList<>());
+            carrito.getDetallesCarrito().add(detalleGuardado); log.info("Nuevo DetalleID {} creado para CarritoID {}", detalleGuardado.getIdDetalleCarrito(), carrito.getIdCarrito());
         }
-        // Guardamos el carrito para asegurar la relación (opcional si cascade está bien)
         carritoRepository.save(carrito);
-
-        // 7. Devolver el carrito mapeado
-        // Recargamos el carrito para obtener la lista actualizada desde la BD (más seguro)
         Carrito carritoActualizado = carritoRepository.findById(carrito.getIdCarrito()).get();
         return mapToCarritoResponse(carritoActualizado);
     }
-
     @Override
     @Transactional
-    public CarritoResponse removeItemFromCarrito(String userEmail, Integer detalleCarritoId) {
+    public CarritoResponse removeItemFromCarrito(String userEmail, Integer detalleCarritoId) { /* ... código existente ... */
         log.info("Eliminando item DetalleCarrito ID {} para usuario {}", detalleCarritoId, userEmail);
-        // 1. Obtener usuario y carrito (con validación)
-        Usuario usuario = usuarioRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
-        Carrito carrito = carritoRepository.findByUsuario(usuario)
-                .orElseThrow(() -> new EntityNotFoundException("Carrito no encontrado.")); // Validar que el carrito exista
-
-        // 2. Encontrar el detalle del carrito (con validación)
-        DetalleCarrito detalle = detalleCarritoRepository.findById(detalleCarritoId)
-                .orElseThrow(() -> new EntityNotFoundException("Item del carrito no encontrado con ID: " + detalleCarritoId));
-
-        // 3. Validar que el item pertenezca al carrito del usuario
+        Usuario usuario = usuarioRepository.findByEmail(userEmail).orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        Carrito carrito = carritoRepository.findByUsuario(usuario).orElseThrow(() -> new EntityNotFoundException("Carrito no encontrado."));
+        DetalleCarrito detalle = detalleCarritoRepository.findById(detalleCarritoId).orElseThrow(() -> new EntityNotFoundException("Item no encontrado ID: " + detalleCarritoId));
         if (!detalle.getCarrito().getIdCarrito().equals(carrito.getIdCarrito())) {
-            log.error("Acceso denegado: Usuario {} intentó eliminar DetalleCarrito ID {} que no le pertenece (pertenece a Carrito ID {}).",
-                    userEmail, detalleCarritoId, detalle.getCarrito().getIdCarrito());
+            log.error("Acceso denegado: Usuario {} intentó eliminar DetalleID {} que no le pertenece (CarritoID {}).", userEmail, detalleCarritoId, detalle.getCarrito().getIdCarrito());
             throw new SecurityException("Acceso denegado: Este item no pertenece a tu carrito.");
         }
-
-        // 4. Eliminar el item
-        // Primero remover de la colección en memoria si es necesario y está cargada
-        if(carrito.getDetallesCarrito() != null){
-            // Importante: Usar equals() para comparar objetos o IDs si es necesario
-            carrito.getDetallesCarrito().removeIf(d -> d.getIdDetalleCarrito().equals(detalleCarritoId));
-        }
-        // Luego eliminar de la base de datos
+        if(carrito.getDetallesCarrito() != null) carrito.getDetallesCarrito().removeIf(d -> d.getIdDetalleCarrito().equals(detalleCarritoId));
         detalleCarritoRepository.delete(detalle);
-        log.info("DetalleCarrito ID {} eliminado con éxito.", detalleCarritoId);
-
-
-        // 5. Recargar el carrito para devolverlo actualizado (más seguro)
+        log.info("DetalleCarrito ID {} eliminado.", detalleCarritoId);
+        Carrito carritoActualizado = carritoRepository.findById(carrito.getIdCarrito()).get();
+        return mapToCarritoResponse(carritoActualizado);
+    }
+    @Override
+    @Transactional
+    public CarritoResponse updateItemQuantity(String userEmail, Integer detalleCarritoId, @Valid UpdateCantidadRequest request) { /* ... código existente ... */
+        log.info("Actualizando cantidad para DetalleCarrito ID {} a {} para usuario {}",
+                detalleCarritoId, request.getNuevaCantidad(), userEmail);
+        Usuario usuario = usuarioRepository.findByEmail(userEmail).orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        Carrito carrito = carritoRepository.findByUsuario(usuario).orElseThrow(() -> new EntityNotFoundException("Carrito no encontrado."));
+        DetalleCarrito detalle = detalleCarritoRepository.findById(detalleCarritoId).orElseThrow(() -> new EntityNotFoundException("Item no encontrado ID: " + detalleCarritoId));
+        if (!detalle.getCarrito().getIdCarrito().equals(carrito.getIdCarrito())) {
+            log.error("!!! ACCESO DENEGADO al actualizar cantidad: Usuario {} intentó actualizar DetalleCarrito ID {} que no le pertenece (pertenece a Carrito ID {}).", userEmail, detalleCarritoId, detalle.getCarrito().getIdCarrito());
+            throw new SecurityException("Acceso denegado: Este item no pertenece a tu carrito.");
+        }
+        log.debug("Validación de pertenencia OK para DetalleCarrito ID {}", detalleCarritoId);
+        Producto producto = detalle.getProducto();
+        Inventario inventario = inventarioRepository.findByProducto(producto).orElseThrow(() -> new EntityNotFoundException("Inventario no encontrado para producto ID: " + producto.getIdProducto()));
+        int nuevaCantidad = request.getNuevaCantidad();
+        int stockActual = inventario.getStock();
+        log.info(">>> Verificando Stock para actualizar DetalleID {} (Producto '{}'): Stock Actual={}, Cantidad Solicitada={} <<<", detalleCarritoId, producto.getNombre(), stockActual, nuevaCantidad);
+        if (stockActual < nuevaCantidad) {
+            String errorMsg = "Stock insuficiente para aumentar la cantidad de '" + producto.getNombre() + "'. Stock disponible: " + stockActual + ", Solicitado: " + nuevaCantidad;
+            log.error("!!! ERROR DE STOCK al actualizar cantidad: {} !!!", errorMsg);
+            throw new RuntimeException(errorMsg);
+        }
+        log.info(">>> Stock OK para actualizar cantidad. <<<");
+        detalle.setCantidad(nuevaCantidad);
+        detalleCarritoRepository.save(detalle);
+        log.info("Cantidad actualizada con éxito para DetalleCarrito ID {} a {}", detalleCarritoId, nuevaCantidad);
         Carrito carritoActualizado = carritoRepository.findById(carrito.getIdCarrito()).get();
         return mapToCarritoResponse(carritoActualizado);
     }

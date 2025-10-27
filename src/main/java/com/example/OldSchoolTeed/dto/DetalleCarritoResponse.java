@@ -16,7 +16,9 @@ public class DetalleCarritoResponse {
     private Integer productoId;
     private String productoNombre;
     private Integer cantidad;
-    private BigDecimal precioUnitario;
-    private BigDecimal subtotal;
-    private String imageUrl; // Añadido para mostrar imagen en el carrito
+    private BigDecimal precioUnitario; // Precio con descuento si aplica
+    private BigDecimal subtotal; // Subtotal con descuento
+    private String imageUrl;
+    private int stockActual; // <<< NUEVO CAMPO: Stock actual del producto
 }
+
