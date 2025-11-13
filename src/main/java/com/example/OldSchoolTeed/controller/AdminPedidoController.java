@@ -18,8 +18,8 @@ import org.springframework.web.server.ResponseStatusException; // Para manejo de
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/pedidos") // Ruta base para admin
-@PreAuthorize("hasAuthority('Administrador')") // ¡Toda la clase requiere rol Admin!
+@RequestMapping("/admin/pedidos")
+@PreAuthorize("hasAuthority('Administrador')") //  rol Admin
 public class AdminPedidoController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminPedidoController.class); // Añadir logger
@@ -30,7 +30,7 @@ public class AdminPedidoController {
     }
 
     /**
-     * [Admin] Obtiene todos los pedidos de todos los usuarios.
+     * Admin Obtiene todos los pedidos de todos los usuarios.
      */
     @GetMapping
     @PreAuthorize("hasAuthority('Administrador')") // Reforzar por si acaso
@@ -46,7 +46,7 @@ public class AdminPedidoController {
     }
 
     /**
-     * [Admin] Actualiza el estado general de un pedido (PENDIENTE, PAGADO, ENVIADO, etc.).
+     * Admin Actualiza el estado general de un pedido (PENDIENTE, PAGADO, ENVIADO, etc.).
      */
     @PatchMapping("/{pedidoId}/estado")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí
@@ -73,7 +73,7 @@ public class AdminPedidoController {
     }
 
     /**
-     * [Admin] Actualiza el estado del pago de un pedido (PENDIENTE, COMPLETADO, FALLIDO).
+     * Admin Actualiza el estado del pago de un pedido (PENDIENTE, COMPLETADO, FALLIDO).
      */
     @PatchMapping("/{pedidoId}/pago")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí
@@ -100,7 +100,7 @@ public class AdminPedidoController {
     }
 
     /**
-     * [Admin] Actualiza los detalles del envío de un pedido (dirección, fecha, estado).
+     * Admin Actualiza los detalles del envío de un pedido (dirección, fecha, estado).
      */
     @PatchMapping("/{pedidoId}/envio")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí

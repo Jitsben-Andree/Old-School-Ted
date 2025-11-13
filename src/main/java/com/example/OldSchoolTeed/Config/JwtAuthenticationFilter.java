@@ -45,7 +45,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.trace("Procesando petición: {} {}", request.getMethod(), request.getRequestURI());
         log.trace("Cabecera Authorization: {}", authHeader);
 
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.trace("No se encontró cabecera Bearer, continuando cadena de filtros sin autenticación JWT.");
             filterChain.doFilter(request, response);
@@ -53,8 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        log.trace("Token JWT extraído: {}", jwt); // Cuidado al loguear tokens en producción
-
+        log.trace("Token JWT extraído: {}", jwt);
 
         try {
             userEmail = jwtService.extractUsername(jwt);
@@ -65,7 +63,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.getWriter().write("Token JWT inválido o expirado");
             return; // Detener la cadena si el token es inválido
         }
-
 
         // Si tenemos email y el usuario AÚN NO está autenticado en esta petición
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -81,7 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
-                        userDetails.getAuthorities() // <<< Pasar autoridades aquí
+                        userDetails.getAuthorities() //
                 );
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)

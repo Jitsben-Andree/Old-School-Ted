@@ -2,7 +2,7 @@ package com.example.OldSchoolTeed.Config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // Importar HttpMethod
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,7 +18,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Mantener para @PreAuthorize si aún se usa en algún lugar
+@EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -35,12 +35,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // --- RUTAS PÚBLICAS ---
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll() // /auth/login, /auth/register y AHORA /auth/unlock
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/files/uploads/**").permitAll()
-                        .requestMatchers("/error").permitAll() // <<< AÑADIR ESTA LÍNEA
+                        .requestMatchers("/error").permitAll()
 
                         // --- RUTAS DE ADMIN (Agrupadas) ---
                         .requestMatchers("/admin/**").hasAuthority("Administrador")
@@ -75,4 +75,3 @@ public class SecurityConfig {
         return source;
     }
 }
-

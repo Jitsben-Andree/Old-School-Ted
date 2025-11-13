@@ -33,6 +33,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional(readOnly = true) // Importante para cargar colecciones LAZY como roles
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.debug("Intentando cargar usuario por email: {}", email);
+
         // Spring Security llama "username" a nuestro "email"
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
@@ -53,17 +54,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         // *** LOG CLAVE: Imprimir las autoridades (roles) cargadas ***
         log.info("Usuario {} cargado con roles: {}", email, authorities);
 
-
         // Construir y devolver el UserDetails de Spring Security
+        // Esta es la parte CRÍTICA que conecta tu lógica
         return new User(
                 usuario.getEmail(),
                 usuario.getPasswordHash(),
-                usuario.getActivo(), // enabled
+                usuario.getActivo(), // enabled (true = activo)
                 true, // accountNonExpired
                 true, // credentialsNonExpired
-                true, // accountNonLocked
+                usuario.isAccountNonLocked(), // accountNonLocked (true = no bloqueado)
                 authorities
         );
     }
 }
-
