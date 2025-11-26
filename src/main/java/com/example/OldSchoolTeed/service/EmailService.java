@@ -13,14 +13,6 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    /**
-     * MODIFICADO: Renombrado a 'sendRecoveryCodeEmail' y texto actualizado.
-     * Envía un correo con el código de recuperación de contraseña.
-     * Ya no se usa para el bloqueo automático.
-
-     * @param to Email del destinatario
-     * @param code Código de 6 dígitos
-     */
     public void sendRecoveryCodeEmail(String to, String code) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

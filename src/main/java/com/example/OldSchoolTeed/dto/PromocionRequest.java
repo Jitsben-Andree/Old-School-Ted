@@ -25,7 +25,7 @@ public class PromocionRequest {
 
     @NotNull(message = "El descuento no puede ser nulo")
     @Positive(message = "El descuento debe ser un valor positivo")
-    private BigDecimal descuento; // Puede ser un porcentaje o un monto fijo, según tu lógica
+    private BigDecimal descuento;
 
     @NotNull(message = "La fecha de inicio no puede ser nula")
     private LocalDateTime fechaInicio;

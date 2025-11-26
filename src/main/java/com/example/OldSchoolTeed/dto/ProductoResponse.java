@@ -19,13 +19,11 @@ public class ProductoResponse {
     private String categoriaNombre;
     private Integer stock;
 
-    // Portada
     private String imageUrl;
 
-    // --- CAMBIO AQUÍ: Usamos objetos con ID y URL ---
+
     private List<ImagenDto> galeriaImagenes;
 
-    // --- NUEVOS CAMPOS PARA PERSONALIZACIÓN (Faltaban estos) ---
     private String colorDorsal;
     private List<LeyendaDto> leyendas;
     // ---------------------------------------------------------

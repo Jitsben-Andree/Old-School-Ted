@@ -53,10 +53,10 @@ public class AuthController {
         }
     }
 
-    /**
-     * Endpoint para PASO 1 (Olvidé Contraseña) o para REENVIAR código.
-     * Recibe un email y envía un código.
-     */
+
+     //Endpoint para PASO 1 (Olvidé Contraseña) o para REENVIAR código.
+     //Recibe un email y envía un código.
+
     @PostMapping("/request-reset")
     public ResponseEntity<?> requestReset(@RequestBody ResetRequest request) {
         try {
@@ -68,10 +68,10 @@ public class AuthController {
         }
     }
 
-    /**
-     * Endpoint para PASO 2 (Desbloqueo / Seteo de nueva contraseña).
-     * Recibe email, código y nueva contraseña.
-     */
+
+     // Endpoint para PASO 2 (Desbloqueo / Seteo de nueva contraseña).
+     //Recibe email, código y nueva contraseña.
+
     @PostMapping("/unlock")
     public ResponseEntity<?> unlockAccount(@RequestBody UnlockRequest request) {
         try {

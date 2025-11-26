@@ -39,10 +39,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
-
-                        // --- CORRECCIÓN AQUÍ ---
-                        // Antes tenías "/files/uploads/**", lo cambiamos a "/uploads/**"
-                        // para que coincida con WebConfig y ProductoServiceImpl
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         // -----------------------
 

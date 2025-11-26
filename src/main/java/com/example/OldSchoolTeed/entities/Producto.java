@@ -64,7 +64,7 @@ public class Producto {
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ImagenProducto> imagenes = new ArrayList<>();
 
-    // --- NUEVO: Lista de Leyendas ---
+
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Leyenda> leyendas = new ArrayList<>();
     // -------------------------------

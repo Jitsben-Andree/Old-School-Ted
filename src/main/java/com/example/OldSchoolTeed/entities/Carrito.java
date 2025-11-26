@@ -29,9 +29,9 @@ public class Carrito {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime fechaCreacion;
 
-    // Inicializar la lista para evitar NullPointerException
+
     @OneToMany(mappedBy = "carrito", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<DetalleCarrito> detallesCarrito = new ArrayList<>(); // <-- Inicializado aquí
+    private List<DetalleCarrito> detallesCarrito = new ArrayList<>(); 
 
     @PrePersist
     protected void onCreate() {

@@ -20,13 +20,10 @@ public class WebConfig implements WebMvcConfigurer {
         // Obtenemos la ruta absoluta para evitar problemas con rutas relativas
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
 
-        // CORRECCIÓN AQUÍ:
-        // Cambiamos "/files/uploads/**" por "/uploads/**" para coincidir con ProductoServiceImpl
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadPath.toString() + "/");
     }
 
-    // Agregamos CORS globalmente para evitar problemas de "Bloqueado por CORS" en las imágenes o API
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")

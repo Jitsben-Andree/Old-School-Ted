@@ -20,7 +20,7 @@ public class AddItemRequest {
     @Min(value = 1, message = "La cantidad debe ser al menos 1")
     private Integer cantidad;
 
-    // --- NUEVOS CAMPOS PARA PERSONALIZACIÓN ---
+
     private PersonalizacionRequest personalizacion;
     private ParcheRequest parche;
 

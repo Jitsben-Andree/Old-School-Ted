@@ -32,9 +32,7 @@ public class CarritoController {
         this.carritoService = carritoService;
     }
 
-    /**
-     * Obtiene el email del usuario autenticado desde el token JWT.
-     */
+
     private String getEmailFromAuthentication(Authentication authentication) {
         // Validación robusta de Authentication y Principal
         if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDetails)) {
@@ -98,7 +96,7 @@ public class CarritoController {
             log.warn("Error de lógica de negocio al agregar item para usuario {}: {}", email, e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
 
-        } catch (Exception e) { // Captura otros errores (incluyendo ResponseStatusException)
+        } catch (Exception e) {
             // Captura tanto ResponseStatusException como otros errores inesperados
             if (e instanceof ResponseStatusException rse) { // Usar pattern variable binding (Java 16+)
                 log.warn("ResponseStatusException al agregar item para usuario {}: Status={}, Reason={}", email, rse.getStatusCode(), rse.getReason());
@@ -143,7 +141,7 @@ public class CarritoController {
         }
     }
 
-    // --- NUEVO ENDPOINT: updateItemQuantity ---
+
     @PutMapping("/actualizar-cantidad/{detalleCarritoId}")
     public ResponseEntity<CarritoResponse> updateQuantity(
             @PathVariable Integer detalleCarritoId,
@@ -177,8 +175,7 @@ public class CarritoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
 
         } catch (Exception e) { // Captura SecurityException, ResponseStatusException y otros
-            // Manejo unificado para SecurityException y ResponseStatusException
-            // Usar java.lang.SecurityException
+
             if (e instanceof java.lang.SecurityException se) {
                 log.error("Intento no autorizado de actualizar item {} por usuario {}", detalleCarritoId, email);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, se.getMessage(), se);

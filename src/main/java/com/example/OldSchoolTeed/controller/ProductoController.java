@@ -161,9 +161,9 @@ public class ProductoController {
         }
     }
 
-    // --- NUEVOS ENDPOINTS: GESTIÓN DE IMÁGENES ---
+    //  GESTIÓN DE IMÁGENES ---
 
-    // 1. Subir/Actualizar Imagen de Portada (Principal)
+    //  Subir/Actualizar Imagen de Portada (Principal)
     @PostMapping("/admin/productos/{id}/imagen")
     public ResponseEntity<ProductoResponse> uploadMainImage(
             @PathVariable Integer id,
@@ -182,7 +182,7 @@ public class ProductoController {
         }
     }
 
-    // 2. Subir Imagen a la Galería
+    //  Subir Imagen a la Galería
     @PostMapping("/admin/productos/{id}/galeria")
     public ResponseEntity<ProductoResponse> uploadGalleryImage(
             @PathVariable Integer id,
@@ -201,7 +201,7 @@ public class ProductoController {
         }
     }
 
-    // 3. Eliminar Imagen de la Galería
+    //  Eliminar Imagen de la Galería
     @DeleteMapping("/admin/productos/{id}/galeria/{imagenId}")
     public ResponseEntity<Void> deleteGalleryImage(
             @PathVariable Integer id,

@@ -29,9 +29,9 @@ public class AdminPedidoController {
         this.pedidoService = pedidoService;
     }
 
-    /**
-     * Admin Obtiene todos los pedidos de todos los usuarios.
-     */
+
+     //Admin Obtiene todos los pedidos de todos los usuarios.
+
     @GetMapping
     @PreAuthorize("hasAuthority('Administrador')") // Reforzar por si acaso
     public ResponseEntity<List<PedidoResponse>> getAllPedidos() {
@@ -45,9 +45,9 @@ public class AdminPedidoController {
         }
     }
 
-    /**
-     * Admin Actualiza el estado general de un pedido (PENDIENTE, PAGADO, ENVIADO, etc.).
-     */
+
+     //admin Actualiza el estado general de un pedido (PENDIENTE, PAGADO, ENVIADO, etc.).
+
     @PatchMapping("/{pedidoId}/estado")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí
     public ResponseEntity<PedidoResponse> updatePedidoStatus(
@@ -72,9 +72,7 @@ public class AdminPedidoController {
         }
     }
 
-    /**
-     * Admin Actualiza el estado del pago de un pedido (PENDIENTE, COMPLETADO, FALLIDO).
-     */
+
     @PatchMapping("/{pedidoId}/pago")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí
     public ResponseEntity<PedidoResponse> updatePagoStatus(
@@ -99,9 +97,6 @@ public class AdminPedidoController {
         }
     }
 
-    /**
-     * Admin Actualiza los detalles del envío de un pedido (dirección, fecha, estado).
-     */
     @PatchMapping("/{pedidoId}/envio")
     @PreAuthorize("hasAuthority('Administrador')") // Añadir explícitamente aquí
     public ResponseEntity<PedidoResponse> updateEnvioDetails(

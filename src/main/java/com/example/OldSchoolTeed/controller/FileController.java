@@ -33,10 +33,10 @@ public class FileController {
         this.productoService = productoService; // Asignar
     }
 
-    /**
-     * Endpoint para subir la imagen de un producto.
-     * Solo accesible por Administradores (verificado en SecurityConfig).
-     */
+
+    // Endpoint para subir la imagen de un producto.
+     //Solo accesible por Administradores (verificado en SecurityConfig).
+
     @PostMapping("/upload/producto/{productoId}")
     public ResponseEntity<Map<String, String>> uploadProductImage(
             @PathVariable Integer productoId,
@@ -68,16 +68,10 @@ public class FileController {
         }
 
         try {
-            // 1. Guardar el archivo usando StorageService
+            //  Guardar el archivo usando StorageService
             String filename = storageService.storeFile(file);
             log.info("Archivo guardado como: {}", filename);
 
-
-            // *** CORRECCIÓN DE LA URL ***
-            // Construir la URL usando ServletUriComponentsBuilder correctamente
-            // fromCurrentContextPath() -> http://localhost:8080/api/v1
-            // path("/files/uploads/") -> http://localhost:8080/api/v1/files/uploads/
-            // path(filename) -> http://localhost:8080/api/v1/files/uploads/nombreArchivo.jpg
             String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/files/uploads/") // Añadir el path del endpoint de descarga
                     .path(filename)          // Añadir el nombre del archivo
@@ -107,9 +101,9 @@ public class FileController {
         }
     }
 
-    /**
-     * Endpoint público para servir/descargar archivos subidos.
-     */
+
+     //Endpoint público para servir/descargar archivos subidos.
+
     @GetMapping("/uploads/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
         log.debug("Solicitud GET /files/uploads/{} recibida", filename);

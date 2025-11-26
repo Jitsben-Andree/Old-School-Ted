@@ -34,10 +34,10 @@ public class ProductoRequest {
     @NotNull(message = "La categoría es obligatoria")
     private Integer categoriaId;
 
-    // --- CAMPOS CRÍTICOS PARA LEYENDAS Y COLOR ---
+    // LEYENDAS Y COLOR ---
     private String colorDorsal;
     private List<LeyendaDto> leyendas;
-    // ---------------------------------------------
+
 
     @Data
     @NoArgsConstructor

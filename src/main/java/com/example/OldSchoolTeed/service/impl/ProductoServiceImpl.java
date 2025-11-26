@@ -119,7 +119,7 @@ public class ProductoServiceImpl implements ProductoService {
                     .map(l -> new ProductoResponse.LeyendaDto(l.getId(), l.getNombre(), l.getNumero()))
                     .collect(Collectors.toList());
         }
-        // -----------------------------------------------------------------------------
+
 
         return ProductoResponse.builder()
                 .id(producto.getIdProducto())
@@ -198,7 +198,7 @@ public class ProductoServiceImpl implements ProductoService {
                 }
             }
         }
-        // -------------------------------------------
+
 
         Producto saved = productoRepository.save(producto);
         Inventario inv = new Inventario(); inv.setProducto(saved); inv.setStock(0); inventarioRepository.save(inv);
@@ -242,7 +242,7 @@ public class ProductoServiceImpl implements ProductoService {
                 }
             }
         }
-        // --------------------------------------
+
 
         return mapToProductoResponse(productoRepository.save(producto));
     }
