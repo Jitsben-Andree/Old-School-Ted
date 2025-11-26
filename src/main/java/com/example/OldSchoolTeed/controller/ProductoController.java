@@ -7,20 +7,21 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource; // << Importar Resource
-import org.springframework.http.HttpHeaders; // << Importar HttpHeaders
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType; // << Importar MediaType
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-// import org.springframework.security.access.prepost.PreAuthorize; // No necesario si se usa /admin/**
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile; // Importante para subir archivos
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException; // << Importar IOException
-import java.time.LocalDateTime; // << Importar LocalDateTime
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200") // Asegúrate de tener esto para que Angular conecte
 public class ProductoController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductoController.class);
@@ -32,7 +33,7 @@ public class ProductoController {
 
     // --- ENDPOINTS PÚBLICOS (/productos/**) ---
     @GetMapping("/productos")
-    public ResponseEntity<List<ProductoResponse>> getAllProductosActivos() { /* ... código existente ... */
+    public ResponseEntity<List<ProductoResponse>> getAllProductosActivos() {
         log.info("GET /productos -> Obteniendo productos activos");
         try {
             return ResponseEntity.ok(productoService.getAllProductosActivos());
@@ -41,8 +42,9 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al obtener productos", e);
         }
     }
+
     @GetMapping("/productos/{id}")
-    public ResponseEntity<ProductoResponse> getProductoById(@PathVariable Integer id) { /* ... código existente ... */
+    public ResponseEntity<ProductoResponse> getProductoById(@PathVariable Integer id) {
         log.info("GET /productos/{} -> Obteniendo producto por ID", id);
         try {
             return ResponseEntity.ok(productoService.getProductoById(id));
@@ -54,8 +56,9 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al obtener producto", e);
         }
     }
+
     @GetMapping("/productos/categoria/{nombreCategoria}")
-    public ResponseEntity<List<ProductoResponse>> getProductosByCategoria(@PathVariable String nombreCategoria) { /* ... código existente ... */
+    public ResponseEntity<List<ProductoResponse>> getProductosByCategoria(@PathVariable String nombreCategoria) {
         log.info("GET /productos/categoria/{} -> Obteniendo productos por categoría", nombreCategoria);
         try {
             return ResponseEntity.ok(productoService.getProductosByCategoria(nombreCategoria));
@@ -67,7 +70,7 @@ public class ProductoController {
 
     // --- ENDPOINTS DE ADMINISTRADOR (/admin/productos/**) ---
     @GetMapping("/admin/productos/all")
-    public ResponseEntity<List<ProductoResponse>> getAllProductosAdmin() { /* ... código existente ... */
+    public ResponseEntity<List<ProductoResponse>> getAllProductosAdmin() {
         log.info("Admin: GET /admin/productos/all -> Obteniendo todos los productos");
         try {
             return ResponseEntity.ok(productoService.getAllProductosIncludingInactive());
@@ -76,8 +79,9 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al obtener todos los productos", e);
         }
     }
+
     @PostMapping("/admin/productos")
-    public ResponseEntity<ProductoResponse> createProductoAdmin(@Valid @RequestBody ProductoRequest request) { /* ... código existente ... */
+    public ResponseEntity<ProductoResponse> createProductoAdmin(@Valid @RequestBody ProductoRequest request) {
         log.info("Admin: POST /admin/productos -> Creando producto: {}", request.getNombre());
         try {
             ProductoResponse response = productoService.createProducto(request);
@@ -85,14 +89,15 @@ public class ProductoController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (EntityNotFoundException e) {
             log.warn("Admin: Error al crear producto, categoría no encontrada: {}", request.getCategoriaId());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e); // 400 si la categoría no existe
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         } catch (Exception e) {
             log.error("Admin: Error inesperado al crear producto", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear producto", e);
         }
     }
+
     @PutMapping("/admin/productos/{id}")
-    public ResponseEntity<ProductoResponse> updateProductoAdmin(@PathVariable Integer id, @Valid @RequestBody ProductoRequest request) { /* ... código existente ... */
+    public ResponseEntity<ProductoResponse> updateProductoAdmin(@PathVariable Integer id, @Valid @RequestBody ProductoRequest request) {
         log.info("Admin: PUT /admin/productos/{} -> Actualizando producto", id);
         try {
             ProductoResponse response = productoService.updateProducto(id, request);
@@ -100,15 +105,15 @@ public class ProductoController {
             return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
             log.warn("Admin: Error al actualizar, producto o categoría no encontrado para ID: {}", id);
-            // Puede ser producto no encontrado o categoría no encontrada
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (Exception e) {
             log.error("Admin: Error inesperado al actualizar producto ID {}", id, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al actualizar producto", e);
         }
     }
+
     @DeleteMapping("/admin/productos/{id}")
-    public ResponseEntity<Void> deleteProductoAdmin(@PathVariable Integer id) { /* ... código existente ... */
+    public ResponseEntity<Void> deleteProductoAdmin(@PathVariable Integer id) {
         log.info("Admin: DELETE /admin/productos/{} -> Desactivando producto", id);
         try {
             productoService.deleteProducto(id);
@@ -122,8 +127,10 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al desactivar producto", e);
         }
     }
+
+    // --- GESTIÓN DE PROMOCIONES ---
     @PostMapping("/admin/productos/{productoId}/promociones/{promocionId}")
-    public ResponseEntity<Void> associatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) { /* ... código existente ... */
+    public ResponseEntity<Void> associatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) {
         log.info("Admin: POST /admin/productos/{}/promociones/{} -> Asociando promoción", productoId, promocionId);
         try {
             productoService.associatePromocionToProducto(productoId, promocionId);
@@ -137,8 +144,9 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al asociar promoción", e);
         }
     }
+
     @DeleteMapping("/admin/productos/{productoId}/promociones/{promocionId}")
-    public ResponseEntity<Void> disassociatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) { /* ... código existente ... */
+    public ResponseEntity<Void> disassociatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) {
         log.info("Admin: DELETE /admin/productos/{}/promociones/{} -> Desasociando promoción", productoId, promocionId);
         try {
             productoService.disassociatePromocionFromProducto(productoId, promocionId);
@@ -153,32 +161,82 @@ public class ProductoController {
         }
     }
 
-    // --- NUEVO ENDPOINT PARA EXPORTAR ---
+    // --- NUEVOS ENDPOINTS: GESTIÓN DE IMÁGENES ---
+
+    // 1. Subir/Actualizar Imagen de Portada (Principal)
+    @PostMapping("/admin/productos/{id}/imagen")
+    public ResponseEntity<ProductoResponse> uploadMainImage(
+            @PathVariable Integer id,
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Admin: POST /admin/productos/{}/imagen -> Subiendo portada", id);
+        try {
+            ProductoResponse response = productoService.uploadProductImage(id, file);
+            log.info("Admin: Portada actualizada para producto ID {}", id);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error al subir portada para producto ID {}", id, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al subir imagen", e);
+        }
+    }
+
+    // 2. Subir Imagen a la Galería
+    @PostMapping("/admin/productos/{id}/galeria")
+    public ResponseEntity<ProductoResponse> uploadGalleryImage(
+            @PathVariable Integer id,
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Admin: POST /admin/productos/{}/galeria -> Agregando imagen a galería", id);
+        try {
+            ProductoResponse response = productoService.uploadGalleryImage(id, file);
+            log.info("Admin: Imagen agregada a galería de producto ID {}", id);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error al subir imagen a galería para producto ID {}", id, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al subir a galería", e);
+        }
+    }
+
+    // 3. Eliminar Imagen de la Galería
+    @DeleteMapping("/admin/productos/{id}/galeria/{imagenId}")
+    public ResponseEntity<Void> deleteGalleryImage(
+            @PathVariable Integer id,
+            @PathVariable Integer imagenId) {
+
+        log.info("Admin: DELETE /admin/productos/{}/galeria/{} -> Borrando imagen de galería", id, imagenId);
+        try {
+            productoService.deleteGalleryImage(id, imagenId);
+            log.info("Admin: Imagen ID {} eliminada de galería producto ID {}", imagenId, id);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error al borrar imagen de galería", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al borrar imagen", e);
+        }
+    }
+
+    // --- EXPORTAR EXCEL ---
     @GetMapping("/admin/productos/exportar-excel")
-    // La seguridad ya está cubierta por .requestMatchers("/admin/**") en SecurityConfig
     public ResponseEntity<Resource> exportProductosToExcel() {
-        log.info("Admin: GET /admin/productos/exportar-excel -> Solicitud de exportación a Excel");
+        log.info("Admin: GET /admin/productos/exportar-excel -> Solicitud de exportación");
         try {
             Resource file = productoService.exportProductosToExcel();
-            // Crear nombre de archivo dinámico con fecha
             String filename = "productos_oldschooltees_"
                     + LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".xlsx";
-            log.info("Admin: Archivo Excel generado: {}", filename);
 
             return ResponseEntity.ok()
-                    // Cabecera para indicar que es un archivo adjunto para descargar
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                    // Tipo de contenido para archivos Excel modernos (.xlsx)
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(file);
         } catch (IOException e) {
-            log.error("Admin: Error al generar o servir el archivo Excel", e);
-            // Devolver un error 500 si falla la generación
+            log.error("Admin: Error al generar Excel", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar el archivo Excel", e);
         }
     }
-    // --- FIN NUEVO ENDPOINT ---
-
 }
-

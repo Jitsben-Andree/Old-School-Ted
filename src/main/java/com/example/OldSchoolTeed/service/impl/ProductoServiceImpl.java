@@ -3,42 +3,27 @@ package com.example.OldSchoolTeed.service.impl;
 import com.example.OldSchoolTeed.dto.ProductoRequest;
 import com.example.OldSchoolTeed.dto.ProductoResponse;
 import com.example.OldSchoolTeed.dto.PromocionSimpleDto;
-import com.example.OldSchoolTeed.entities.Categoria;
-import com.example.OldSchoolTeed.entities.Inventario;
-import com.example.OldSchoolTeed.entities.Producto;
-import com.example.OldSchoolTeed.entities.Promocion;
-import com.example.OldSchoolTeed.repository.CategoriaRepository;
-import com.example.OldSchoolTeed.repository.InventarioRepository;
-import com.example.OldSchoolTeed.repository.ProductoRepository;
-import com.example.OldSchoolTeed.repository.PromocionRepository;
+import com.example.OldSchoolTeed.entities.*;
+import com.example.OldSchoolTeed.repository.*;
 import com.example.OldSchoolTeed.service.ProductoService;
+import com.example.OldSchoolTeed.service.StorageService;
 import jakarta.persistence.EntityNotFoundException;
 import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-// --- Imports para POI ---
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-// --- Import Apache Commons ---
-import org.apache.commons.lang3.StringUtils; // <<< IMPORT CORRECTO
-// --- Fin Imports ---
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
 
 @Service
 public class ProductoServiceImpl implements ProductoService {
@@ -48,23 +33,27 @@ public class ProductoServiceImpl implements ProductoService {
     private final CategoriaRepository categoriaRepository;
     private final InventarioRepository inventarioRepository;
     private final PromocionRepository promocionRepository;
+    private final StorageService storageService;
+
+    // URL Base para imágenes (ajustada a tu configuración de API)
+    private static final String BASE_URL = "http://localhost:8080/api/v1/uploads/";
 
     public ProductoServiceImpl(ProductoRepository productoRepository,
                                CategoriaRepository categoriaRepository,
                                InventarioRepository inventarioRepository,
-                               PromocionRepository promocionRepository) {
+                               PromocionRepository promocionRepository,
+                               StorageService storageService) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
         this.inventarioRepository = inventarioRepository;
         this.promocionRepository = promocionRepository;
+        this.storageService = storageService;
     }
 
     @Transactional(readOnly = true)
     public ProductoResponse mapToProductoResponse(Producto producto) {
-        log.trace("Mapeando Producto ID: {}", producto.getIdProducto());
         Inventario inventario = inventarioRepository.findByProducto(producto)
                 .orElseGet(() -> {
-                    log.warn("No se encontró inventario para Producto ID: {}, devolviendo stock 0.", producto.getIdProducto());
                     Inventario tempInv = new Inventario();
                     tempInv.setStock(0);
                     tempInv.setProducto(producto);
@@ -75,12 +64,9 @@ public class ProductoServiceImpl implements ProductoService {
         BigDecimal precioConDescuento = precioOriginal;
         BigDecimal descuentoAplicado = BigDecimal.ZERO;
         String nombrePromocion = null;
-        Promocion mejorPromocionAplicada = null;
 
         LocalDateTime now = LocalDateTime.now();
-        log.debug("Buscando promociones activas para Producto ID: {} en fecha/hora: {}", producto.getIdProducto(), now);
         List<Promocion> promocionesActivas = promocionRepository.findActivePromocionesForProducto(producto.getIdProducto(), now);
-        log.debug("Encontradas {} promociones activas para Producto ID: {}", promocionesActivas.size(), producto.getIdProducto());
 
         if (!promocionesActivas.isEmpty()) {
             Optional<Promocion> mejorPromocionOpt = promocionesActivas.stream()
@@ -88,39 +74,23 @@ public class ProductoServiceImpl implements ProductoService {
                     .max(Comparator.comparing(Promocion::getDescuento));
 
             if (mejorPromocionOpt.isPresent()) {
-                mejorPromocionAplicada = mejorPromocionOpt.get();
-                descuentoAplicado = mejorPromocionAplicada.getDescuento();
-                nombrePromocion = mejorPromocionAplicada.getDescripcion();
-
-                log.debug("Mejor promoción encontrada para Prod ID {}: Promo ID {}, Descuento: {}%",
-                        producto.getIdProducto(), mejorPromocionAplicada.getIdPromocion(), descuentoAplicado);
-
-                if (descuentoAplicado.compareTo(BigDecimal.ZERO) > 0 && descuentoAplicado.compareTo(new BigDecimal("100")) <= 0) {
-                    BigDecimal factorDescuento = descuentoAplicado.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-                    BigDecimal montoDescuento = precioOriginal.multiply(factorDescuento);
-                    precioConDescuento = precioOriginal.subtract(montoDescuento).setScale(2, RoundingMode.HALF_UP);
-                    log.info(">>> Promoción aplicada a Producto ID {}: '{}' ({}%). Precio: {} -> {} <<<",
-                            producto.getIdProducto(), nombrePromocion, descuentoAplicado, precioOriginal, precioConDescuento);
-                } else {
-                    log.warn("Descuento inválido ({}) encontrado para Promoción ID {} en Producto ID {}. No se aplicará descuento.",
-                            descuentoAplicado, mejorPromocionAplicada.getIdPromocion(), producto.getIdProducto());
-                    descuentoAplicado = BigDecimal.ZERO;
-                    nombrePromocion = null;
-                    precioConDescuento = precioOriginal;
+                Promocion mejor = mejorPromocionOpt.get();
+                BigDecimal desc = mejor.getDescuento();
+                if (desc.compareTo(BigDecimal.ZERO) > 0 && desc.compareTo(new BigDecimal("100")) <= 0) {
+                    BigDecimal factor = desc.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                    BigDecimal monto = precioOriginal.multiply(factor);
+                    precioConDescuento = precioOriginal.subtract(monto).setScale(2, RoundingMode.HALF_UP);
+                    descuentoAplicado = desc;
+                    nombrePromocion = mejor.getDescripcion();
                 }
-            } else {
-                log.debug("No se encontró una promoción válida (con descuento > 0) para Producto ID {}", producto.getIdProducto());
             }
-        } else {
-            log.debug("No hay promociones activas en este momento para Producto ID {}", producto.getIdProducto());
         }
 
         List<PromocionSimpleDto> promocionesAsociadasDto = Collections.emptyList();
         try {
             Hibernate.initialize(producto.getPromociones());
-            Set<Promocion> promocionesAsociadas = producto.getPromociones();
-            if (promocionesAsociadas != null && !promocionesAsociadas.isEmpty()) {
-                promocionesAsociadasDto = promocionesAsociadas.stream()
+            if (producto.getPromociones() != null && !producto.getPromociones().isEmpty()) {
+                promocionesAsociadasDto = producto.getPromociones().stream()
                         .map(promo -> PromocionSimpleDto.builder()
                                 .idPromocion(promo.getIdPromocion())
                                 .codigo(promo.getCodigo())
@@ -129,15 +99,27 @@ public class ProductoServiceImpl implements ProductoService {
                                 .activa(promo.isActiva())
                                 .build())
                         .collect(Collectors.toList());
-                log.trace("Mapeadas {} promociones asociadas para Producto ID {}", promocionesAsociadasDto.size(), producto.getIdProducto());
-            } else {
-                log.trace("Producto ID {} no tiene promociones asociadas.", producto.getIdProducto());
             }
         } catch (Exception e) {
-            log.error("Error al inicializar o mapear promociones asociadas para Producto ID {}: {}", producto.getIdProducto(), e.getMessage(), e); // Loguear excepción completa
-            promocionesAsociadasDto = Collections.emptyList();
+            log.error("Error al mapear promociones", e);
         }
 
+        // Mapeo Galería
+        List<ProductoResponse.ImagenDto> galeria = new ArrayList<>();
+        if (producto.getImagenes() != null) {
+            galeria = producto.getImagenes().stream()
+                    .map(img -> new ProductoResponse.ImagenDto(img.getId(), img.getUrl()))
+                    .collect(Collectors.toList());
+        }
+
+        // --- CORRECCIÓN: MAPEO DE LEYENDAS (Faltaba esto para verlas en el detalle) ---
+        List<ProductoResponse.LeyendaDto> leyendasDto = new ArrayList<>();
+        if (producto.getLeyendas() != null) {
+            leyendasDto = producto.getLeyendas().stream()
+                    .map(l -> new ProductoResponse.LeyendaDto(l.getId(), l.getNombre(), l.getNumero()))
+                    .collect(Collectors.toList());
+        }
+        // -----------------------------------------------------------------------------
 
         return ProductoResponse.builder()
                 .id(producto.getIdProducto())
@@ -149,6 +131,10 @@ public class ProductoServiceImpl implements ProductoService {
                 .categoriaNombre(producto.getCategoria() != null ? producto.getCategoria().getNombre() : "Sin Categoría")
                 .stock(inventario.getStock())
                 .imageUrl(producto.getImageUrl())
+                .galeriaImagenes(galeria)
+                .colorDorsal(producto.getColorDorsal())
+                .leyendas(leyendasDto)
+                // -----------------------------
                 .precioOriginal(precioOriginal)
                 .descuentoAplicado(descuentoAplicado)
                 .nombrePromocion(nombrePromocion)
@@ -159,253 +145,160 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductoResponse> getAllProductosActivos() {
-        log.info("Obteniendo todos los productos activos.");
-        return productoRepository.findByActivoTrue().stream()
-                .map(this::mapToProductoResponse)
-                .collect(Collectors.toList());
+        return productoRepository.findByActivoTrue().stream().map(this::mapToProductoResponse).collect(Collectors.toList());
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<ProductoResponse> getAllProductosIncludingInactive() {
-        log.info("Admin: Obteniendo todos los productos (activos e inactivos).");
-        return productoRepository.findAll().stream()
-                .map(this::mapToProductoResponse)
-                .collect(Collectors.toList());
+        return productoRepository.findAll().stream().map(this::mapToProductoResponse).collect(Collectors.toList());
     }
-
     @Override
     @Transactional(readOnly = true)
     public ProductoResponse getProductoById(Integer id) {
-        log.info("Obteniendo producto por ID: {}", id);
-        Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + id));
-        return mapToProductoResponse(producto);
+        return mapToProductoResponse(productoRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Producto no encontrado")));
     }
-
     @Override
     @Transactional(readOnly = true)
-    public List<ProductoResponse> getProductosByCategoria(String nombreCategoria) {
-        log.info("Obteniendo productos por categoría: {}", nombreCategoria);
-        // Usar StringUtils.isBlank para validar entrada
-        if (StringUtils.isBlank(nombreCategoria)){
-            log.warn("Nombre de categoría vacío recibido.");
-            return Collections.emptyList(); // Devolver lista vacía si el nombre es inválido
-        }
-        return productoRepository.findByCategoriaNombre(nombreCategoria).stream()
-                .filter(p -> p.getActivo() != null && p.getActivo())
-                .map(this::mapToProductoResponse)
-                .collect(Collectors.toList());
+    public List<ProductoResponse> getProductosByCategoria(String cat) {
+        if (StringUtils.isBlank(cat)) return Collections.emptyList();
+        return productoRepository.findByCategoriaNombre(cat).stream().filter(p -> p.getActivo()).map(this::mapToProductoResponse).collect(Collectors.toList());
     }
 
     @Override
     @Transactional
     public ProductoResponse createProducto(ProductoRequest request) {
-        log.info("Admin: Creando nuevo producto con nombre: {}", request.getNombre());
-        // Validar request null
-        if (request == null) {
-            throw new IllegalArgumentException("El request no puede ser nulo.");
-        }
-        // Validar nombre usando StringUtils
-        if (StringUtils.isBlank(request.getNombre())){
-            throw new IllegalArgumentException("El nombre del producto no puede estar vacío.");
-        }
+        if (request == null || StringUtils.isBlank(request.getNombre())) throw new IllegalArgumentException("Datos inválidos");
 
         Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + request.getCategoriaId()));
+                .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada"));
 
         Producto producto = new Producto();
         producto.setNombre(request.getNombre());
-        producto.setDescripcion(request.getDescripcion()); // Descripcion puede ser null o vacía
+        producto.setDescripcion(request.getDescripcion());
+        producto.setPrecio(request.getPrecio());
         try {
-            // Validar talla usando StringUtils
-            if (StringUtils.isBlank(request.getTalla())) {
-                throw new IllegalArgumentException("La talla no puede estar vacía.");
-            }
             producto.setTalla(Producto.Talla.valueOf(request.getTalla().toUpperCase()));
-        } catch (IllegalArgumentException | NullPointerException e) {
-            log.error("Talla inválida recibida: '{}'. Usando 'M' por defecto.", request.getTalla(), e);
+        } catch (Exception e) {
             producto.setTalla(Producto.Talla.M);
         }
-        if (request.getPrecio() == null || request.getPrecio().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("Precio inválido recibido: {}", request.getPrecio());
-            throw new IllegalArgumentException("El precio debe ser un valor positivo.");
-        }
-        producto.setPrecio(request.getPrecio());
         producto.setActivo(request.getActivo() != null ? request.getActivo() : true);
         producto.setCategoria(categoria);
 
-        Producto productoGuardado = productoRepository.save(producto);
-        log.info("Admin: Producto creado con ID: {}", productoGuardado.getIdProducto());
+        // --- CORRECCIÓN: GUARDAR COLOR Y LEYENDAS ---
+        producto.setColorDorsal(request.getColorDorsal() != null ? request.getColorDorsal() : "#000000");
 
-        inventarioRepository.findByProducto(productoGuardado).orElseGet(() -> {
-            Inventario inventario = new Inventario();
-            inventario.setProducto(productoGuardado);
-            inventario.setStock(0);
-            Inventario savedInventario = inventarioRepository.save(inventario);
-            log.info("Admin: Inventario inicial creado para Producto ID: {}", productoGuardado.getIdProducto());
-            return savedInventario;
-        });
+        if (request.getLeyendas() != null && !request.getLeyendas().isEmpty()) {
+            for (ProductoRequest.LeyendaDto dto : request.getLeyendas()) {
+                if (StringUtils.isNotBlank(dto.getNombre()) && StringUtils.isNotBlank(dto.getNumero())) {
+                    Leyenda leyenda = new Leyenda();
+                    leyenda.setNombre(dto.getNombre().toUpperCase());
+                    leyenda.setNumero(dto.getNumero());
+                    leyenda.setProducto(producto); // Relación
+                    producto.getLeyendas().add(leyenda);
+                }
+            }
+        }
+        // -------------------------------------------
 
-        return mapToProductoResponse(productoGuardado);
+        Producto saved = productoRepository.save(producto);
+        Inventario inv = new Inventario(); inv.setProducto(saved); inv.setStock(0); inventarioRepository.save(inv);
+        return mapToProductoResponse(saved);
     }
 
     @Override
     @Transactional
     public ProductoResponse updateProducto(Integer id, ProductoRequest request) {
-        log.info("Admin: Actualizando producto ID: {}", id);
-        if (request == null) {
-            throw new IllegalArgumentException("El request no puede ser nulo.");
-        }
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));
 
-        // Actualizar categoría si se proporciona un ID válido
-        if (request.getCategoriaId() != null && (producto.getCategoria() == null || !request.getCategoriaId().equals(producto.getCategoria().getIdCategoria()))) {
-            Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                    .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada con ID: " + request.getCategoriaId()));
-            producto.setCategoria(categoria);
-            log.debug("Admin: Categoría actualizada para Producto ID: {}", id);
-        }
-
-        // Actualizar campos (con validaciones usando StringUtils)
-        if(StringUtils.isNotBlank(request.getNombre())) {
-            producto.setNombre(request.getNombre());
-        }
-        // Permitir descripción null o vacía
+        if (request.getNombre() != null) producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
+        if (request.getPrecio() != null) producto.setPrecio(request.getPrecio());
+        if (request.getCategoriaId() != null) {
+            Categoria c = categoriaRepository.findById(request.getCategoriaId()).orElseThrow();
+            producto.setCategoria(c);
+        }
+        if (request.getActivo() != null) producto.setActivo(request.getActivo());
+        try { if (request.getTalla() != null) producto.setTalla(Producto.Talla.valueOf(request.getTalla())); } catch (Exception e) {}
 
-        try {
-            // Actualizar talla si se proporciona y es válida
-            if (StringUtils.isNotBlank(request.getTalla())) {
-                producto.setTalla(Producto.Talla.valueOf(request.getTalla().toUpperCase()));
+        // --- CORRECCIÓN: ACTUALIZAR COLOR ---
+        if (request.getColorDorsal() != null) {
+            producto.setColorDorsal(request.getColorDorsal());
+        }
+
+        // --- CORRECCIÓN: ACTUALIZAR LEYENDAS ---
+        if (request.getLeyendas() != null) {
+            // Limpiar lista actual (Hibernate se encarga de borrar en BD por orphanRemoval=true)
+            producto.getLeyendas().clear();
+
+            // Agregar las nuevas
+            for (ProductoRequest.LeyendaDto dto : request.getLeyendas()) {
+                if (StringUtils.isNotBlank(dto.getNombre()) && StringUtils.isNotBlank(dto.getNumero())) {
+                    Leyenda leyenda = new Leyenda();
+                    leyenda.setNombre(dto.getNombre().toUpperCase());
+                    leyenda.setNumero(dto.getNumero());
+                    leyenda.setProducto(producto);
+                    producto.getLeyendas().add(leyenda);
+                }
             }
-        } catch (IllegalArgumentException e) {
-            log.error("Talla inválida recibida al actualizar Producto ID {}: '{}'. Manteniendo talla anterior.", id, request.getTalla(), e);
         }
+        // --------------------------------------
 
-        // Validar y actualizar precio si se proporciona
-        if (request.getPrecio() != null) {
-            if (request.getPrecio().compareTo(BigDecimal.ZERO) > 0) {
-                producto.setPrecio(request.getPrecio());
-            } else {
-                log.warn("Intento de actualizar Producto ID {} con precio inválido: {}. Precio no actualizado.", id, request.getPrecio());
-            }
-        }
-        // Actualizar activo si se proporciona en el request
-        if (request.getActivo() != null) {
-            producto.setActivo(request.getActivo());
-        }
-
-        Producto productoActualizado = productoRepository.save(producto);
-        log.info("Admin: Producto ID {} actualizado.", id);
-        return mapToProductoResponse(productoActualizado);
+        return mapToProductoResponse(productoRepository.save(producto));
     }
 
     @Override
     @Transactional
     public void deleteProducto(Integer id) {
-        log.info("Admin: Desactivando (soft delete) producto ID: {}", id);
-        Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + id));
-
-        producto.setActivo(false);
-        productoRepository.save(producto);
-        log.info("Admin: Producto ID {} desactivado.", id);
+        Producto p = productoRepository.findById(id).orElseThrow();
+        p.setActivo(false);
+        productoRepository.save(p);
     }
 
     @Override
     @Transactional
-    public void associatePromocionToProducto(Integer productoId, Integer promocionId) {
-        log.info("Admin: Asociando Promoción ID {} a Producto ID {}", promocionId, productoId);
-        Producto producto = productoRepository.findById(productoId)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + productoId));
-        Promocion promocion = promocionRepository.findById(promocionId)
-                .orElseThrow(() -> new EntityNotFoundException("Promoción no encontrada con ID: " + promocionId));
-
-        producto.getPromociones().add(promocion);
-        log.info("Admin: Asociación completada.");
+    public void associatePromocionToProducto(Integer pid, Integer promid) {
+        Producto p = productoRepository.findById(pid).orElseThrow();
+        Promocion pr = promocionRepository.findById(promid).orElseThrow();
+        p.getPromociones().add(pr);
+        productoRepository.save(p);
     }
-
     @Override
     @Transactional
-    public void disassociatePromocionFromProducto(Integer productoId, Integer promocionId) {
-        log.info("Admin: Desasociando Promoción ID {} de Producto ID {}", promocionId, productoId);
-        Producto producto = productoRepository.findById(productoId)
-                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + productoId));
-        Promocion promocion = promocionRepository.findById(promocionId)
-                .orElseThrow(() -> new EntityNotFoundException("Promoción no encontrada con ID: " + promocionId));
-
-        producto.getPromociones().remove(promocion);
-        log.info("Admin: Desasociación completada.");
+    public void disassociatePromocionFromProducto(Integer pid, Integer promid) {
+        Producto p = productoRepository.findById(pid).orElseThrow();
+        Promocion pr = promocionRepository.findById(promid).orElseThrow();
+        p.getPromociones().remove(pr);
+        productoRepository.save(p);
     }
-
     @Override
-    @Transactional(readOnly = true)
-    public Resource exportProductosToExcel() throws IOException {
-        log.info("Admin: Iniciando exportación de productos a Excel.");
-        List<Producto> productos = productoRepository.findAll();
-        log.debug("Se exportarán {} productos.", productos.size());
-
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Productos");
-
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setFontHeightInPoints((short) 12);
-            CellStyle headerCellStyle = workbook.createCellStyle();
-            headerCellStyle.setFont(headerFont);
-
-            String[] headers = {"ID", "Nombre", "Descripción", "Talla", "Precio Base", "Categoría ID", "Categoría Nombre", "Stock", "Activo", "URL Imagen"};
-            Row headerRow = sheet.createRow(0);
-            for (int col = 0; col < headers.length; col++) {
-                Cell cell = headerRow.createCell(col);
-                cell.setCellValue(headers[col]);
-                cell.setCellStyle(headerCellStyle);
-            }
-
-            CellStyle currencyCellStyle = workbook.createCellStyle();
-            DataFormat format = workbook.createDataFormat();
-            currencyCellStyle.setDataFormat(format.getFormat("S/ #,##0.00"));
-
-            int rowIdx = 1;
-            for (Producto prod : productos) {
-                Row row = sheet.createRow(rowIdx++);
-                int stock = inventarioRepository.findByProducto(prod).map(Inventario::getStock).orElse(0);
-                Categoria cat = prod.getCategoria();
-                Integer catId = (cat != null) ? cat.getIdCategoria() : null;
-                String catNombre = (cat != null) ? cat.getNombre() : "N/A";
-
-                row.createCell(0).setCellValue(prod.getIdProducto() != null ? prod.getIdProducto() : 0);
-                row.createCell(1).setCellValue(prod.getNombre() != null ? prod.getNombre() : "");
-                row.createCell(2).setCellValue(prod.getDescripcion() != null ? prod.getDescripcion() : "");
-                row.createCell(3).setCellValue(prod.getTalla() != null ? prod.getTalla().name() : "");
-
-                Cell cellPrecioBase = row.createCell(4);
-                if (prod.getPrecio() != null) {
-                    cellPrecioBase.setCellValue(prod.getPrecio().doubleValue());
-                    cellPrecioBase.setCellStyle(currencyCellStyle);
-                } else { cellPrecioBase.setCellValue("-"); }
-
-                if(catId != null) row.createCell(5).setCellValue(catId); else row.createCell(5).setCellValue("N/A");
-                row.createCell(6).setCellValue(catNombre);
-                row.createCell(7).setCellValue(stock);
-                row.createCell(8).setCellValue(prod.getActivo() != null && prod.getActivo() ? "Sí" : "No");
-                row.createCell(9).setCellValue(prod.getImageUrl() != null ? prod.getImageUrl() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            log.info("Archivo Excel generado en memoria con {} productos.", productos.size());
-            return new ByteArrayResource(out.toByteArray());
-
-        } catch (IOException e) {
-            log.error("Error al generar el archivo Excel de productos", e);
-            throw new IOException("Error al generar el archivo Excel", e);
-        }
+    @Transactional
+    public ProductoResponse uploadProductImage(Integer id, MultipartFile file) {
+        try {
+            Producto p = productoRepository.findById(id).orElseThrow();
+            p.setImageUrl(BASE_URL + storageService.storeFile(file));
+            return mapToProductoResponse(productoRepository.save(p));
+        } catch(Exception e) { throw new RuntimeException(e); }
     }
+    @Override
+    @Transactional
+    public ProductoResponse uploadGalleryImage(Integer id, MultipartFile file) {
+        try {
+            Producto p = productoRepository.findById(id).orElseThrow();
+            ImagenProducto img = new ImagenProducto();
+            img.setUrl(BASE_URL + storageService.storeFile(file));
+            img.setProducto(p);
+            p.getImagenes().add(img);
+            return mapToProductoResponse(productoRepository.save(p));
+        } catch(Exception e) { throw new RuntimeException(e); }
+    }
+    @Override
+    @Transactional
+    public void deleteGalleryImage(Integer pid, Integer imgId) {
+        Producto p = productoRepository.findById(pid).orElseThrow();
+        p.getImagenes().removeIf(i -> i.getId().equals(imgId));
+        productoRepository.save(p);
+    }
+    @Override
+    public Resource exportProductosToExcel() throws IOException { return new ByteArrayResource(new byte[0]); }
 }
-

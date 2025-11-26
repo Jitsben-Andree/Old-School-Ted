@@ -35,17 +35,23 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // --- RUTAS PÚBLICAS ---
-                        .requestMatchers("/auth/**").permitAll() // /auth/login, /auth/register y AHORA /auth/unlock
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/files/uploads/**").permitAll()
+
+                        // --- CORRECCIÓN AQUÍ ---
+                        // Antes tenías "/files/uploads/**", lo cambiamos a "/uploads/**"
+                        // para que coincida con WebConfig y ProductoServiceImpl
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        // -----------------------
+
                         .requestMatchers("/error").permitAll()
 
-                        // --- RUTAS DE ADMIN (Agrupadas) ---
+                        // --- RUTAS DE ADMIN ---
                         .requestMatchers("/admin/**").hasAuthority("Administrador")
 
-                        // --- RUTAS DE CLIENTE (o Admin) ---
+                        // --- RUTAS DE CLIENTE ---
                         .requestMatchers("/carrito/**").hasAnyAuthority("Cliente", "Administrador")
                         .requestMatchers(HttpMethod.GET, "/pedidos", "/pedidos/**").hasAnyAuthority("Cliente", "Administrador")
                         .requestMatchers(HttpMethod.POST, "/pedidos/crear").hasAnyAuthority("Cliente", "Administrador")
@@ -65,7 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000")); // Permitir Angular y React
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
