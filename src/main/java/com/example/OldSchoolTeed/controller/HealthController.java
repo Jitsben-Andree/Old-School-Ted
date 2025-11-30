@@ -38,7 +38,7 @@ public class HealthController {
         if (dbUp) {
             return ResponseEntity.ok(status);
         } else {
-            log.error("🚨 ALERTA: La base de datos parece estar caída.");
+            log.error("ALERTA: La base de datos parece estar caída.");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(status);
         }
     }

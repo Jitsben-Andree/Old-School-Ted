@@ -26,31 +26,31 @@ public class ScheduledTasksService {
     //Health Check ...
     @Scheduled(cron = "0 * * * * *")
     public void reportarEstadoDelSistema() {
-        log.info("⏰ CRON HEALTH: Sistema activo.");
+        log.info("CRON HEALTH: Sistema activo.");
     }
 
     // Limpieza de Códigos ...
     @Scheduled(cron = "0 0 4 * * *")
     public void limpiarCodigosDeDesbloqueo() {
-        log.info("🧹 CRON JOB: Iniciando limpieza de códigos de desbloqueo vencidos...");
+        log.info(" CRON JOB: Iniciando limpieza de códigos de desbloqueo vencidos...");
         try {
             int registrosAfectados = usuarioRepository.limpiarCodigosVencidos(LocalDateTime.now());
-            if (registrosAfectados > 0) log.info("✅ CRON JOB: Se limpiaron {} usuarios.", registrosAfectados);
+            if (registrosAfectados > 0) log.info("CRON JOB: Se limpiaron {} usuarios.", registrosAfectados);
         } catch (Exception e) {
-            log.error("❌ CRON JOB ERROR: Falló la limpieza de códigos.", e);
+            log.error(" CRON JOB ERROR: Falló la limpieza de códigos.", e);
         }
     }
 
     // Cancelar Pedidos ...
     @Scheduled(cron = "0 0 * * * *")
     public void cancelarPedidosPendientesAntiguos() {
-        log.info("📦 CRON JOB: Buscando pedidos pendientes antiguos...");
+        log.info(" CRON JOB: Buscando pedidos pendientes antiguos...");
         try {
             LocalDateTime fechaLimite = LocalDateTime.now().minusHours(24);
             int pedidosCancelados = pedidoRepository.cancelarPedidosExpirados(fechaLimite);
-            if (pedidosCancelados > 0) log.info("✅ CRON JOB: Se cancelaron {} pedidos expirados.", pedidosCancelados);
+            if (pedidosCancelados > 0) log.info(" CRON JOB: Se cancelaron {} pedidos expirados.", pedidosCancelados);
         } catch (Exception e) {
-            log.error("❌ CRON JOB ERROR: Falló la cancelación de pedidos.", e);
+            log.error("CRON JOB ERROR: Falló la cancelación de pedidos.", e);
         }
     }
 
@@ -77,12 +77,12 @@ public class ScheduledTasksService {
             }
 
             log.info("============================================");
-            log.info("📊 REPORTE DE VENTAS DEL DIA: {}", ayer);
-            log.info("💵 Total Generado: ${}", totalVentas);
+            log.info("REPORTE DE VENTAS DEL DIA: {}", ayer);
+            log.info("Total Generado: ${}", totalVentas);
             log.info("============================================");
 
         } catch (Exception e) {
-            log.error("❌CRON JOB ERROR: Falló el reporte de ventas.", e);
+            log.error("CRON JOB ERROR: Falló el reporte de ventas.", e);
         }
     }
 }

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- 1. DEFINICIÓN DE PROPIEDADES -->
+
     <!-- Ruta donde se guardarán los archivos. "./logs" crea una carpeta en la raíz del proyecto -->
     <property name="LOGS" value="./logs" />
 
-    <!-- 2. APPENDER DE CONSOLA (CORREGIDO: encoder en vez de layout) -->
+
     <!-- Muestra colores y formato legible en tu terminal -->
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -38,7 +38,7 @@
         </rollingPolicy>
     </appender>
 
-    <!-- 4. CONFIGURACIÓN DE LOGGERS -->
+    <!--CONFIGURACIÓN DE LOGGERS -->
 
     <!-- Logs de TU aplicación: Nivel DEBUG (verás todo lo que hagas) -->
     <logger name="com.example.OldSchoolTeed" level="DEBUG" additivity="false">
