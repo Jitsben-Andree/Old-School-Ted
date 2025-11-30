@@ -76,12 +76,5 @@ public class Usuario {
         this.fechaRegistro = LocalDateTime.now();
     }
 
-    /**
-     * IMPORTANTE:
-     * Asegúrate de que tu clase UserDetailsServiceImpl (o donde implementes
-     * UserDetailsService) esté mapeando correctamente estos campos.
-     * Específicamente, el método UserDetails.isAccountNonLocked()
-     * debe devolver el valor de este campo 'accountNonLocked'.
-     * Y UserDetails.isEnabled() debe devolver 'activo'.
-     */
+
 }

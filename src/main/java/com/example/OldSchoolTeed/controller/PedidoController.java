@@ -3,6 +3,7 @@ package com.example.OldSchoolTeed.controller;
 import com.example.OldSchoolTeed.dto.PedidoRequest;
 import com.example.OldSchoolTeed.dto.PedidoResponse;
 import com.example.OldSchoolTeed.service.PedidoService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,8 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/pedidos") // Ruta base (recuerda que el context-path es /api/v1)
-@PreAuthorize("hasAuthority('Cliente')") // Requiere rol 'Cliente' para toda la clase
+@RequestMapping("/pedidos")
+@PreAuthorize("hasAuthority('Cliente')")
+@Slf4j
 public class PedidoController {
 
     private final PedidoService pedidoService;
@@ -34,18 +36,16 @@ public class PedidoController {
             Authentication authentication
     ) {
         String email = getEmailFromAuthentication(authentication);
-        try {
-            PedidoResponse pedido = pedidoService.crearPedidoDesdeCarrito(email, request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(pedido);
-        } catch (RuntimeException e) {
-            // Captura errores de stock, carrito vacío, etc.
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
+        log.info("Cliente: Creando pedido para usuario: {}", email);
+        // Si falla por stock o carrito vacío, lanzará RuntimeException que atrapará el GlobalHandler
+        PedidoResponse pedido = pedidoService.crearPedidoDesdeCarrito(email, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedido);
     }
 
     @GetMapping("/mis-pedidos")
     public ResponseEntity<List<PedidoResponse>> getMisPedidos(Authentication authentication) {
         String email = getEmailFromAuthentication(authentication);
+        log.info("Cliente: Consultando historial pedidos: {}", email);
         return ResponseEntity.ok(pedidoService.getPedidosByUsuario(email));
     }
 
@@ -55,13 +55,7 @@ public class PedidoController {
             Authentication authentication
     ) {
         String email = getEmailFromAuthentication(authentication);
-        try {
-            PedidoResponse pedido = pedidoService.getPedidoById(email, pedidoId);
-            return ResponseEntity.ok(pedido);
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+        log.info("Cliente: Consultando pedido ID {} para usuario {}", pedidoId, email);
+        return ResponseEntity.ok(pedidoService.getPedidoById(email, pedidoId));
     }
 }

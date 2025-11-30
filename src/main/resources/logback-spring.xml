@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 1. DEFINICIÓN DE PROPIEDADES -->
+    <!-- Ruta donde se guardarán los archivos. "./logs" crea una carpeta en la raíz del proyecto -->
+    <property name="LOGS" value="./logs" />
+
+    <!-- 2. APPENDER DE CONSOLA (CORREGIDO: encoder en vez de layout) -->
+    <!-- Muestra colores y formato legible en tu terminal -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <Pattern>%black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable</Pattern>
+        </encoder>
+    </appender>
+
+    <!-- 3. APPENDER DE ARCHIVO ROTATIVO (Para persistencia) -->
+    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!-- Archivo activo actual -->
+        <file>${LOGS}/app.log</file>
+
+        <!-- Codificador de texto dentro del archivo -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d %p %C{1} [%t] %m%n</Pattern>
+        </encoder>
+
+        <!-- POLÍTICA DE ROTACIÓN -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+
+            <!-- Nombre de archivos archivados: se comprimen (.gz) automáticamente -->
+            <!-- Ejemplo: logs/archived/app-2023-10-25-1.log.gz -->
+            <fileNamePattern>${LOGS}/archived/app-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+
+            <!-- Cada archivo tendrá máx 10MB, guardará 30 días de historia, o máx 3GB total -->
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 4. CONFIGURACIÓN DE LOGGERS -->
+
+    <!-- Logs de TU aplicación: Nivel DEBUG (verás todo lo que hagas) -->
+    <logger name="com.example.OldSchoolTeed" level="DEBUG" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+
+    <!-- Logs generales de Spring/Hibernate: Nivel INFO (para no saturar) -->
+    <root level="INFO">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </root>
+
+</configuration>
