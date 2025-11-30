@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class ProductoProveedorResponse {
-    private Integer idAsignacion; // El ID de la tabla ProductoProveedor
+    private Integer idAsignacion; 
     private Integer productoId;
     private String productoNombre;
     private Integer proveedorId;
