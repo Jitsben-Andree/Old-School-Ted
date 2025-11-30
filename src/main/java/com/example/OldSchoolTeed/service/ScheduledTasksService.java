@@ -26,7 +26,7 @@ public class ScheduledTasksService {
     //Health Check ...
     @Scheduled(cron = "0 * * * * *")
     public void reportarEstadoDelSistema() {
-        // log.info("⏰ CRON HEALTH: Sistema activo.");
+        log.info("⏰ CRON HEALTH: Sistema activo.");
     }
 
     // Limpieza de Códigos ...
@@ -54,11 +54,11 @@ public class ScheduledTasksService {
         }
     }
 
-    /**
-     * Reporte Diario de Ventas
-     * Se ejecuta todos los días a las 8:00 AM.
-     * Calcula cuánto se vendió el día de AYER (00:00 a 23:59).
-     */
+
+     // Reporte Diario de Ventas
+    // Se ejecuta todos los días a las 8:00 AM.
+
+
     @Scheduled(cron = "0 0 8 * * *")
     public void reporteDiarioDeVentas() {
         log.info("💰 CRON JOB: Generando reporte de ventas de ayer...");
@@ -66,8 +66,8 @@ public class ScheduledTasksService {
         try {
             // Definir rango: Ayer completo
             LocalDate ayer = LocalDate.now().minusDays(1);
-            LocalDateTime inicio = ayer.atStartOfDay(); // Ayer 00:00:00
-            LocalDateTime fin = ayer.atTime(LocalTime.MAX); // Ayer 23:59:59.999
+            LocalDateTime inicio = ayer.atStartOfDay();
+            LocalDateTime fin = ayer.atTime(LocalTime.MAX);
 
             BigDecimal totalVentas = pedidoRepository.sumarVentasEnRango(inicio, fin);
 
@@ -77,7 +77,7 @@ public class ScheduledTasksService {
             }
 
             log.info("============================================");
-            log.info("📊 REPORTE DE VENTAS DEL DÍA: {}", ayer);
+            log.info("📊 REPORTE DE VENTAS DEL DIA: {}", ayer);
             log.info("💵 Total Generado: ${}", totalVentas);
             log.info("============================================");
 
