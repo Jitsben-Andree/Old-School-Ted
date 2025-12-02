@@ -1,9 +1,12 @@
 package com.example.OldSchoolTeed.Config.exception;
 
+import io.sentry.Sentry;
+import io.sentry.SentryLevel;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,19 +21,52 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    // Capturar errores de "No encontrado" (EntityNotFoundException)
-    // Devuelve 404 Not Found
+    // 1. Capturar errores de "No encontrado" (404)
+    // Antes: Solo log local. AHORA: Se envía a Sentry como Warning.
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex, WebRequest request) {
-        log.warn("Recurso no encontrado: {}", ex.getMessage()); // Logueamos como WARN, no es error de sistema
+
+        // Enviamos a Sentry (Nivel Warning para no asustar con rojos)
+        Sentry.withScope(scope -> {
+            scope.setLevel(SentryLevel.WARNING);
+            scope.setTag("tipo_error", "not_found");
+            Sentry.captureException(ex);
+        });
+
+        log.warn("Recurso no encontrado: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getDescription(false));
     }
 
-    // Capturar errores de validación (@Valid)
-    // Devuelve 400 Bad Request con detalle de qué campos fallaron
+    // 2. Capturar Credenciales Incorrectas (Login) - (401)
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
+
+
+        Sentry.withScope(scope -> {
+            scope.setLevel(SentryLevel.ERROR); // <--- Rojo chillón
+            scope.setTag("tipo_error", "login_fail");
+            // Agregamos el usuario al mensaje para diferenciarlo visualmente
+            scope.setContexts("usuario", request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "anonimo");
+            Sentry.captureException(ex);
+        });
+
+        log.warn("Intento de login fallido: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Usuario o contraseña incorrectos", request.getDescription(false));
+    }
+
+    // 3. Capturar errores de validación (400)
+    // Antes: Solo log local. AHORA: Se envía a Sentry como Info/Warning.
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        log.warn("Error de validación en la petición: {}", ex.getBindingResult().getTarget());
+
+        // Enviamos a Sentry (Útil para saber si los usuarios se equivocan mucho en los formularios)
+        Sentry.withScope(scope -> {
+            scope.setLevel(SentryLevel.INFO);
+            scope.setTag("tipo_error", "validacion");
+            Sentry.captureException(ex);
+        });
+
+        log.warn("Error de validación: {}", ex.getBindingResult().getTarget());
 
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -48,15 +84,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // Capturar errores generales (NullPointer, SQL, etc.)
-    // Devuelve 500 Internal Server Error (y lo loguea como ERROR crítico)
+    // 4. Capturar errores generales Críticos (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex, WebRequest request) {
-        log.error(" ERROR CRÍTICO NO CONTROLADO: ", ex); // Aquí capturamos el stack trace completo
+
+        // Reportar a Sentry como ERROR (Rojo - Crítico)
+        Sentry.captureException(ex);
+
+        log.error("ERROR CRÍTICO NO CONTROLADO: ", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error interno inesperado", request.getDescription(false));
     }
 
-    // Método auxiliar para construir la respuesta JSON común
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message, String path) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());

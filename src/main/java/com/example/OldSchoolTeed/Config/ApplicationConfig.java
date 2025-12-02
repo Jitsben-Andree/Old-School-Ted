@@ -21,7 +21,6 @@ public class ApplicationConfig {
     }
 
     // Bean para cargar usuarios (referencia a nuestro UserDetailsServiceImpl)
-    // Spring inyectará automáticamente UserDetailsServiceImpl donde se pida UserDetailsService
     @Bean
     public UserDetailsService userDetailsService() {
         return email -> usuarioRepository.findByEmail(email)

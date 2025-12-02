@@ -36,17 +36,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // --- RUTAS PÚBLICAS ---
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/health/status").permitAll() // <--- ¡AGREGADO AQUÍ!
+                        .requestMatchers("/actuator/**").permitAll() 
+
+
+                        // .requestMatchers("/error-prueba").permitAll()
+                        // .requestMatchers("/sentry-test").permitAll()
+                        // .requestMatchers("/error-unico").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
-                        // -----------------------
-
                         .requestMatchers("/error").permitAll()
 
                         // --- RUTAS DE ADMIN ---
-                        // Nota: /health/metrics no lo ponemos aquí porque ya tiene @PreAuthorize en el controller
                         .requestMatchers("/admin/**").hasAuthority("Administrador")
 
                         // --- RUTAS DE CLIENTE ---
@@ -69,10 +72,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Añado localhost:8080 por si quieres probar desde el mismo servidor
         configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+
+        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "sentry-trace", "baggage"));
+
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -27,38 +27,28 @@ import java.util.stream.Stream;
 @Slf4j
 public class LogController {
 
-    // Ruta al archivo que configuramos en logback-spring.xml
     private final String LOG_FILE_PATH = "./logs/app.log";
 
     @GetMapping("/recent")
-    public ResponseEntity<List<String>> getRecentLogs() {
+    public ResponseEntity<List<String>> getRecentLogs() throws IOException { // Declaramos throws IOException
         Path path = Paths.get(LOG_FILE_PATH);
         File file = path.toFile();
 
         if (!file.exists()) {
-            return ResponseEntity.ok(Collections.singletonList(" Archivo de log no encontrado. ¿Ya se generaron eventos?"));
+            return ResponseEntity.ok(Collections.singletonList("⚠️ Archivo de log no encontrado aún."));
         }
 
+        // Usamos try-with-resources solo para cerrar el Stream, pero NO atrapamos la excepción
         try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
-            // Leer el archivo y quedarse con las últimas 50 líneas
-            // Nota: Para archivos GIGANTES (GBs) esto no es eficiente, pero para 10MB está perfecto.
-            List<String> recentLogs = lines
-                    .collect(Collectors.toList());
+            List<String> recentLogs = lines.collect(Collectors.toList());
 
-            // Si hay muchas líneas, tomamos las últimas 100
             if (recentLogs.size() > 100) {
                 recentLogs = recentLogs.subList(recentLogs.size() - 100, recentLogs.size());
             }
-
-            // Invertimos para ver lo más nuevo arriba (opcional)
             Collections.reverse(recentLogs);
-
             return ResponseEntity.ok(recentLogs);
-
-        } catch (IOException e) {
-            log.error("Error leyendo logs", e);
-            return ResponseEntity.internalServerError().body(Collections.singletonList("Error leyendo el archivo de logs."));
         }
+        // Si ocurre IOException, sube al GlobalHandler -> Sentry
     }
 
     @GetMapping("/download")

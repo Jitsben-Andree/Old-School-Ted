@@ -37,7 +37,7 @@ public class ScheduledTasksService {
             int registrosAfectados = usuarioRepository.limpiarCodigosVencidos(LocalDateTime.now());
             if (registrosAfectados > 0) log.info("CRON JOB: Se limpiaron {} usuarios.", registrosAfectados);
         } catch (Exception e) {
-            log.error(" CRON JOB ERROR: Falló la limpieza de códigos.", e);
+            log.error(" CRON JOB ERROR: Falló la limpieza de códigos ooo", e);
         }
     }
 

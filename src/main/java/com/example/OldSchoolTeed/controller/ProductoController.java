@@ -4,7 +4,6 @@ import com.example.OldSchoolTeed.dto.ProductoRequest;
 import com.example.OldSchoolTeed.dto.ProductoResponse;
 import com.example.OldSchoolTeed.service.ProductoService;
 import jakarta.validation.Valid;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -29,7 +28,15 @@ public class ProductoController {
         this.productoService = productoService;
     }
 
-    // ENDPOINTS PÚBLICOS (/productos/)
+
+    @GetMapping("/error-unico")
+    public void errorUnico() {
+        // UUID genera un código único tipo: "a1b2-c3d4-..."
+        String codigoUnico = java.util.UUID.randomUUID().toString();
+        throw new RuntimeException("Error ÚNICO de prueba ID: " + codigoUnico);
+    }
+
+    // --- ENDPOINTS PÚBLICOS (/productos/) ---
     @GetMapping("/productos")
     public ResponseEntity<List<ProductoResponse>> getAllProductosActivos() {
         log.info("GET /productos -> Obteniendo productos activos");
@@ -48,7 +55,7 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.getProductosByCategoria(nombreCategoria));
     }
 
-    // ENDPOINTS DE ADMINISTRADOR (/admin/productos/**)
+    // --- ENDPOINTS DE ADMINISTRADOR (/admin/productos/**) ---
     @GetMapping("/admin/productos/all")
     public ResponseEntity<List<ProductoResponse>> getAllProductosAdmin() {
         log.info("Admin: GET /admin/productos/all -> Obteniendo todos los productos");
@@ -79,7 +86,7 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
-    // GESTIÓN DE PROMOCIONES ---
+    // --- GESTIÓN DE PROMOCIONES ---
     @PostMapping("/admin/productos/{productoId}/promociones/{promocionId}")
     public ResponseEntity<Void> associatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) {
         log.info("Admin: POST /admin/productos/{}/promociones/{} -> Asociando promoción", productoId, promocionId);
@@ -96,12 +103,12 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
-    // GESTIÓN DE IMÁGENES ---
+    // --- GESTIÓN DE IMÁGENES ---
 
     @PostMapping("/admin/productos/{id}/imagen")
     public ResponseEntity<ProductoResponse> uploadMainImage(
             @PathVariable Integer id,
-            @RequestParam("file") MultipartFile file) throws IOException { // Declaramos throws IOException para que lo maneje el global
+            @RequestParam("file") MultipartFile file) throws IOException { // Declaramos IOException para que suba al GlobalHandler
 
         log.info("Admin: POST /admin/productos/{}/imagen -> Subiendo portada", id);
         ProductoResponse response = productoService.uploadProductImage(id, file);

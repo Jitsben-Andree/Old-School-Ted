@@ -138,12 +138,21 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
-		<!-- Pasarela de Pagos Stripe -->
+		<!--  SPRING BOOT ACTUATOR (Monitoreo Estándar) -->
+
 		<dependency>
-			<groupId>com.stripe</groupId>
-			<artifactId>stripe-java</artifactId>
-			<version>24.0.0</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+
+		<!--SENTRY (Gestión de Errores en la Nube) -->
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-spring-boot-starter</artifactId>
+			<version>7.3.0</version>
+		</dependency>
+
+
 	</dependencies>
 
 	<build>

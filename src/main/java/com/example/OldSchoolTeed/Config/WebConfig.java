@@ -17,7 +17,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Obtenemos la ruta absoluta para evitar problemas con rutas relativas
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
 
         registry.addResourceHandler("/uploads/**")
