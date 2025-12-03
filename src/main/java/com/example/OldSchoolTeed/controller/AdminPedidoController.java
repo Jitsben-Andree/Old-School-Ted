@@ -63,4 +63,11 @@ public class AdminPedidoController {
         log.info("Admin: Detalles de envío del pedido ID {} actualizados con éxito.", pedidoId);
         return ResponseEntity.ok(pedidoActualizado);
     }
+
+    @DeleteMapping("/{pedidoId}")
+    public ResponseEntity<Void> deletePedido(@PathVariable Integer pedidoId) {
+        log.info("Admin: Solicitud de eliminación de pedido ID {}", pedidoId);
+        pedidoService.deletePedido(pedidoId);
+        return ResponseEntity.noContent().build();
+    }
 }

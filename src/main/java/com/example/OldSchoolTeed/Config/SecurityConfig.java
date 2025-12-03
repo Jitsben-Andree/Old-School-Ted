@@ -36,13 +36,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         //  RUTAS PÚBLICAS
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll() 
-
+                        .requestMatchers("/actuator/**").permitAll() // Monitoreo (Actuator)
 
                         // .requestMatchers("/error-prueba").permitAll()
                         // .requestMatchers("/sentry-test").permitAll()
-                        .requestMatchers("/error-unico").permitAll()
 
+                        // Endpoints públicos de la tienda
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/promociones/**").permitAll()
@@ -74,11 +73,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "sentry-trace", "baggage"));
-
         configuration.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

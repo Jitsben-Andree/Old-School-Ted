@@ -16,7 +16,7 @@ import java.util.List;
 public class PedidoResponse {
     private Integer pedidoId;
     private LocalDateTime fecha;
-    private String estado; // Pendiente, Pagado, Enviado, etc.
+    private String estado;
     private BigDecimal total;
     private List<DetallePedidoResponse> detalles;
 
@@ -27,4 +27,17 @@ public class PedidoResponse {
     // Info del pago
     private String estadoPago;
     private String metodoPago;
+
+    private Integer usuarioId;
+    private UsuarioResumen usuario;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsuarioResumen {
+        private Integer idUsuario;
+        private String nombre;
+        private String email;
+    }
 }

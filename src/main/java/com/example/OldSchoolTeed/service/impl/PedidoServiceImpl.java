@@ -6,8 +6,8 @@ import com.example.OldSchoolTeed.repository.*;
 import com.example.OldSchoolTeed.service.PedidoService;
 import com.example.OldSchoolTeed.service.ProductoService;
 import jakarta.persistence.EntityNotFoundException;
-import org.apache.commons.collections4.CollectionUtils; // Importar CollectionUtils
-import org.apache.commons.lang3.StringUtils; // Importar StringUtils
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -72,12 +72,11 @@ public class PedidoServiceImpl implements PedidoService {
 
             List<DetalleCarrito> detallesCarrito = carrito.getDetallesCarrito();
 
-            // Usar CollectionUtils.isEmpty para verificar si el carrito está vacío
             if (CollectionUtils.isEmpty(detallesCarrito)) {
                 log.warn("Intento de crear pedido con carrito vacío para usuario: {}", usuarioEmail);
                 throw new RuntimeException("El carrito está vacío, no se puede crear un pedido.");
             } else {
-                detallesCarrito.size(); // Forzar carga LAZY si aplica
+                detallesCarrito.size();
                 log.debug("Detalles del carrito cargados ({} items)", detallesCarrito.size());
             }
 
@@ -104,7 +103,7 @@ public class PedidoServiceImpl implements PedidoService {
             for(DetalleCarrito detalleCarrito : detallesCarrito) {
                 ProductoResponse productoDto = productoService.getProductoById(detalleCarrito.getProducto().getIdProducto());
                 BigDecimal precioUnitarioFinal = productoDto.getPrecio();
-                BigDecimal precioUnitarioOriginal = productoDto.getPrecioOriginal() != null ? productoDto.getPrecioOriginal() : precioUnitarioFinal; // Usar precio final si original es null
+                BigDecimal precioUnitarioOriginal = productoDto.getPrecioOriginal() != null ? productoDto.getPrecioOriginal() : precioUnitarioFinal;
                 BigDecimal subtotalFinal = precioUnitarioFinal.multiply(BigDecimal.valueOf(detalleCarrito.getCantidad())).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal montoDescuentoItem = (precioUnitarioOriginal.subtract(precioUnitarioFinal))
                         .multiply(BigDecimal.valueOf(detalleCarrito.getCantidad()))
@@ -126,7 +125,7 @@ public class PedidoServiceImpl implements PedidoService {
             // Crear Pago y Envío
             log.info("Creando entidades Pago y Envío...");
             Pago.MetodoPago metodoPago;
-            // Usar StringUtils.isBlank para validar método de pago
+
             if (StringUtils.isBlank(request.getMetodoPagoInfo())) {
                 log.error("!!! ERROR DE METODO DE PAGO: Método de pago recibido es null o vacío !!!");
                 throw new RuntimeException("Debe seleccionar un método de pago.");
@@ -145,7 +144,6 @@ public class PedidoServiceImpl implements PedidoService {
             Pago pagoGuardado = pagoRepository.save(pago);
             log.debug("Pago guardado con ID: {}", pagoGuardado.getIdPago());
 
-            // Usar StringUtils.isBlank para validar dirección
             if (StringUtils.isBlank(request.getDireccionEnvio())) {
                 log.error("!!! ERROR DE DIRECCION: Dirección de envío recibida es null o vacía !!!");
                 throw new RuntimeException("Debe ingresar una dirección de envío.");
@@ -188,7 +186,6 @@ public class PedidoServiceImpl implements PedidoService {
             carritoRepository.save(carrito);
             log.info("Todos los detalles movidos y carrito vaciado.");
 
-            // Asociar colecciones y devolver
             pedidoGuardado.setPago(pagoGuardado);
             pedidoGuardado.setEnvio(envioGuardado);
             pedidoGuardado.setDetallesPedido(detallesPedidoGuardados);
@@ -205,7 +202,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
     }
 
-    // Clase interna DetallePedidoInfo
     private static class DetallePedidoInfo {
         Producto producto;
         Integer cantidad;
@@ -244,7 +240,6 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado con ID: " + pedidoId));
 
-        // Validar pertenencia
         if (!pedido.getUsuario().getIdUsuario().equals(usuario.getIdUsuario())) {
             log.warn("Acceso denegado: Usuario {} intentó acceder al pedido ID {} que pertenece a otro usuario.", usuarioEmail, pedidoId);
             throw new SecurityException("Acceso denegado: Este pedido no te pertenece.");
@@ -253,8 +248,6 @@ public class PedidoServiceImpl implements PedidoService {
         return mapToPedidoResponse(pedido);
     }
 
-
-//admin
     @Override
     @Transactional(readOnly = true)
     public List<PedidoResponse> getAllPedidosAdmin() {
@@ -274,7 +267,6 @@ public class PedidoServiceImpl implements PedidoService {
                 .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado con ID: " + pedidoId));
 
         try {
-            // Usar StringUtils.isBlank para validar
             if (StringUtils.isBlank(request.getNuevoEstado())) {
                 throw new IllegalArgumentException("El nuevo estado no puede estar vacío.");
             }
@@ -285,7 +277,6 @@ public class PedidoServiceImpl implements PedidoService {
             return mapToPedidoResponse(pedidoActualizado);
         } catch (IllegalArgumentException e) {
             log.error("Admin: Estado de pedido inválido recibido: '{}'", request.getNuevoEstado(), e);
-            // Devolver mensaje original o uno más genérico
             throw new IllegalArgumentException("Estado de pedido no válido: " + request.getNuevoEstado());
         }
     }
@@ -309,7 +300,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         try {
-            // Usar StringUtils.isBlank para validar
             if (StringUtils.isBlank(request.getNuevoEstadoPago())) {
                 throw new IllegalArgumentException("El nuevo estado de pago no puede estar vacío.");
             }
@@ -361,7 +351,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         boolean envioModificado = false;
-        // Usar StringUtils.isNotBlank para actualizar solo si se envía
         if (StringUtils.isNotBlank(request.getDireccionEnvio())) {
             envio.setDireccionEnvio(request.getDireccionEnvio());
             log.debug("Admin: Dirección de envío actualizada para pedido ID {}", pedidoId);
@@ -372,7 +361,6 @@ public class PedidoServiceImpl implements PedidoService {
             log.debug("Admin: Fecha de envío actualizada para pedido ID {}", pedidoId);
             envioModificado = true;
         }
-        // Usar StringUtils.isNotBlank y el getter correcto
         if (StringUtils.isNotBlank(request.getCodigoSeguimiento())) {
             envio.setCodigoSeguimiento(request.getCodigoSeguimiento());
             log.debug("Admin: Código de seguimiento actualizado para pedido ID {}", pedidoId);
@@ -380,7 +368,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         boolean estadoPedidoModificado = false;
-        // Usar StringUtils.isNotBlank para validar
         if (StringUtils.isNotBlank(request.getNuevoEstadoEnvio())) {
             try {
                 Envio.EstadoEnvio nuevoEstadoEnvio = Envio.EstadoEnvio.valueOf(request.getNuevoEstadoEnvio().toUpperCase());
@@ -428,6 +415,17 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedidoFinal = pedidoRepository.findById(pedidoId).get();
         return mapToPedidoResponse(pedidoFinal);
     }
+
+
+    @Override
+    @Transactional
+    public void deletePedido(Integer pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado con ID: " + pedidoId));
+        pedidoRepository.delete(pedido);
+        log.info("Admin: Pedido ID {} eliminado exitosamente.", pedidoId);
+    }
+
     //  Lógica de Mapeo (Helper)
     private PedidoResponse mapToPedidoResponse(Pedido pedido) {
         List<DetallePedido> detalles = pedido.getDetallesPedido();
@@ -445,10 +443,6 @@ public class PedidoServiceImpl implements PedidoService {
                     BigDecimal precioOriginalUnitario = (detalle.getProducto() != null && detalle.getProducto().getPrecio() != null)
                             ? detalle.getProducto().getPrecio() : BigDecimal.ZERO;
 
-                    if (detalle.getProducto() == null) {
-                        log.warn("DetallePedido ID {} tiene un Producto null.", detalle.getIdDetallePedido());
-                    }
-
                     return DetallePedidoResponse.builder()
                             .detallePedidoId(detalle.getIdDetallePedido())
                             .productoId(idProducto)
@@ -463,12 +457,17 @@ public class PedidoServiceImpl implements PedidoService {
 
         Pago pago = pedido.getPago();
         Envio envio = pedido.getEnvio();
+        Usuario usuario = pedido.getUsuario();
 
-        log.trace("Mapeando Pedido ID: {}. Estado: {}, Total: {}, Pago: {}, Envío: {}",
-                pedido.getIdPedido(), pedido.getEstado(), pedido.getTotal(),
-                (pago != null ? "ID:" + pago.getIdPago() : "null"),
-                (envio != null ? "ID:" + envio.getIdEnvio() : "null"));
-
+        // Crear el resumen del usuario
+        PedidoResponse.UsuarioResumen usuarioResumen = null;
+        if (usuario != null) {
+            usuarioResumen = PedidoResponse.UsuarioResumen.builder()
+                    .idUsuario(usuario.getIdUsuario())
+                    .nombre(usuario.getNombre())
+                    .email(usuario.getEmail())
+                    .build();
+        }
 
         return PedidoResponse.builder()
                 .pedidoId(pedido.getIdPedido())
@@ -480,7 +479,8 @@ public class PedidoServiceImpl implements PedidoService {
                 .estadoEnvio(envio != null && envio.getEstado() != null ? envio.getEstado().name() : "N/A")
                 .estadoPago(pago != null && pago.getEstado() != null ? pago.getEstado().name() : "N/A")
                 .metodoPago(pago != null && pago.getMetodo() != null ? pago.getMetodo().name() : "N/A")
+                .usuario(usuarioResumen)
+                .usuarioId(usuario != null ? usuario.getIdUsuario() : null)
                 .build();
     }
 }
-
