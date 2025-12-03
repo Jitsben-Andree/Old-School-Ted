@@ -21,7 +21,7 @@ public class PromocionServiceImpl implements PromocionService {
         this.promocionRepository = promocionRepository;
     }
 
-    // --- Lógica de Mapeo (Helper) ---
+    //  Lógica de Mapeo (Helper)
     private PromocionResponse mapToPromocionResponse(Promocion promocion) {
         return PromocionResponse.builder()
                 .idPromocion(promocion.getIdPromocion())

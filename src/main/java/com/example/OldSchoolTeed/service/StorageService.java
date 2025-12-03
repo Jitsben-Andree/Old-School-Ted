@@ -29,20 +29,20 @@ public class StorageService  {
 
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
-    // Leer la ruta del directorio desde application.properties
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    private Path fileStorageLocation; // Ruta absoluta al directorio
+    private Path fileStorageLocation;
 
-    private final ProductoRepository productoRepository; // Inyectar repo para actualizar
+    private final ProductoRepository productoRepository;
 
     public StorageService(ProductoRepository productoRepository) {
         this.productoRepository = productoRepository;
     }
 
 
-    @PostConstruct // Ejecutar después de la inyección de dependencias
+    @PostConstruct
     public void init() throws IOException {
         try {
             // Construir la ruta absoluta
@@ -77,8 +77,7 @@ public class StorageService  {
             fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
         } catch (Exception e) {
             log.warn("No se pudo determinar la extensión del archivo: {}", originalFilename);
-            // Podrías asignar una extensión por defecto o rechazar el archivo
-            fileExtension = ""; // O lanzar excepción si la extensión es obligatoria
+            fileExtension = "";
         }
         // Usar UUID para asegurar unicidad
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
@@ -92,7 +91,6 @@ public class StorageService  {
 
 
             // Copiar el archivo al directorio destino
-            // REPLACE_EXISTING asegura que si (por casualidad extrema) el UUID colisiona, se sobreescriba
             try (InputStream inputStream = file.getInputStream()) {
                 Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
                 log.info("Archivo guardado exitosamente en: {}", targetLocation);
@@ -109,7 +107,7 @@ public class StorageService  {
 
     public Resource loadFileAsResource(String filename) throws MalformedURLException, IOException {
         try {
-            Path filePath = load(filename); // Usar método helper
+            Path filePath = load(filename);
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
@@ -117,7 +115,6 @@ public class StorageService  {
                 return resource;
             } else {
                 log.error("Archivo no encontrado o no legible en la ruta: {}", filePath);
-                // Lanzar una excepción más específica podría ser útil
                 throw new IOException("Archivo no encontrado o no se puede leer: " + filename);
             }
         } catch (MalformedURLException ex) {

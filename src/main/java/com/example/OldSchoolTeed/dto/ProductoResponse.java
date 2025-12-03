@@ -26,7 +26,7 @@ public class ProductoResponse {
 
     private String colorDorsal;
     private List<LeyendaDto> leyendas;
-    // ---------------------------------------------------------
+
 
     @Data
     @NoArgsConstructor
@@ -44,7 +44,6 @@ public class ProductoResponse {
         private String nombre;
         private String numero;
     }
-    // ------------------------------------------------
 
     private BigDecimal precioOriginal;
     private BigDecimal descuentoAplicado;

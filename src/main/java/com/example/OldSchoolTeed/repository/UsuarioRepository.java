@@ -15,8 +15,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     boolean existsByEmail(String email);
 
-    @Modifying // Indica que es una consulta de actualización (UPDATE/DELETE)
-    @Transactional // Requerido para operaciones de modificación
+    @Modifying
+    @Transactional
     @Query("UPDATE Usuario u SET u.unlockCode = null, u.unlockCodeExpiration = null WHERE u.unlockCodeExpiration < :now")
     int limpiarCodigosVencidos(LocalDateTime now);
 

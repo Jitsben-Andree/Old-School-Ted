@@ -42,9 +42,8 @@ public class Producto {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
-    // --- NUEVO: Color del Dorsal (Ej: #F7CE46) ---
     @Column(name = "color_dorsal", length = 20)
-    private String colorDorsal = "#000000"; // Negro por defecto
+    private String colorDorsal = "#000000";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria")
@@ -67,7 +66,7 @@ public class Producto {
 
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Leyenda> leyendas = new ArrayList<>();
-    // -------------------------------
+
 
     public enum Talla {
         S, M, L, XL

@@ -21,12 +21,12 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    // 1. Capturar errores de "No encontrado" (404)
-    // Antes: Solo log local. AHORA: Se envía a Sentry como Warning.
+    // apturar errores de "No encontrado" (404)
+
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex, WebRequest request) {
 
-        // Enviamos a Sentry (Nivel Warning para no asustar con rojos)
+        // Enviamos a Sentry
         Sentry.withScope(scope -> {
             scope.setLevel(SentryLevel.WARNING);
             scope.setTag("tipo_error", "not_found");
@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getDescription(false));
     }
 
-    // 2. Capturar Credenciales Incorrectas (Login) - (401)
+    // Capturar Credenciales Incorrectas (Login) - (401)
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
 
@@ -54,12 +54,10 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, "Usuario o contraseña incorrectos", request.getDescription(false));
     }
 
-    // 3. Capturar errores de validación (400)
-    // Antes: Solo log local. AHORA: Se envía a Sentry como Info/Warning.
+    // Capturar errores de validación (400)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
 
-        // Enviamos a Sentry (Útil para saber si los usuarios se equivocan mucho en los formularios)
         Sentry.withScope(scope -> {
             scope.setLevel(SentryLevel.INFO);
             scope.setTag("tipo_error", "validacion");
@@ -84,11 +82,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // 4. Capturar errores generales Críticos (500)
+    //  Capturar errores generales Críticos (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex, WebRequest request) {
 
-        // Reportar a Sentry como ERROR (Rojo - Crítico)
+        // Reportar a Sentry como ERROR
         Sentry.captureException(ex);
 
         log.error("ERROR CRÍTICO NO CONTROLADO: ", ex);

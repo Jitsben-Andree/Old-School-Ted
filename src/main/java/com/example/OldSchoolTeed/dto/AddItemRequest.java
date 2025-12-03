@@ -28,9 +28,9 @@ public class AddItemRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PersonalizacionRequest {
-        private String tipo;   // "Leyenda" o "Custom"
-        private String nombre; // "MESSI"
-        private String numero; // "10"
+        private String tipo;
+        private String nombre;
+        private String numero;
         private BigDecimal precio;
     }
 
@@ -38,7 +38,7 @@ public class AddItemRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ParcheRequest {
-        private String tipo;   // "UCL"
+        private String tipo;
         private BigDecimal precio;
     }
 }

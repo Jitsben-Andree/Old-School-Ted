@@ -21,7 +21,7 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class); // Añadir logger
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
@@ -61,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.warn("Token JWT inválido o expirado: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token JWT inválido o expirado");
-            return; // Detener la cadena si el token es inválido
+            return;
         }
 
         // Si tenemos email y el usuario AÚN NO está autenticado en esta petición
@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.debug("Usuario {} no autenticado en SecurityContext, cargando UserDetails...", userEmail);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            // *** LOG CLAVE: Imprimir las autoridades (roles) cargadas ***
+            // LOG CLAVE: Imprimir las autoridades (roles) cargadas
             log.info("UserDetails cargados para {}. Autoridades: {}", userEmail, userDetails.getAuthorities());
 
 

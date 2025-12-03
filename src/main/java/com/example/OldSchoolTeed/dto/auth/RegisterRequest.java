@@ -13,6 +13,5 @@ public class RegisterRequest {
     private String nombre;
     private String email;
     private String password;
-    // Opcional: podrías añadir más campos como dirección, etc.
 }
 

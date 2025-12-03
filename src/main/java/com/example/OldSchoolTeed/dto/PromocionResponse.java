@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// DTO para mostrar la información de una Promocion
 @Data
 @Builder
 @NoArgsConstructor

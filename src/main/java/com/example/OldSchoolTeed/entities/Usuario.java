@@ -36,28 +36,18 @@ public class Usuario {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
-    /**
-     * Indica si la cuenta está bloqueada (false) o no (true).
-     * Spring Security usará esto (a través de UserDetails) para denegar el acceso.
-     */
+
     @Column(name = "account_non_locked")
     private boolean accountNonLocked = true;
 
-    /**
-     * Contador de intentos fallidos de login consecutivos.
-     */
+
     @Column(name = "failed_login_attempts")
     private int failedLoginAttempts = 0;
 
-    /**
-     * Código de un solo uso para desbloquear la cuenta.
-     */
+
     @Column(name = "unlock_code")
     private String unlockCode;
 
-    /**
-     * Fecha y hora en que expira el código de desbloqueo.
-     */
     @Column(name = "unlock_code_expiration")
     private LocalDateTime unlockCodeExpiration;
 

@@ -20,7 +20,7 @@ public class ApplicationConfig {
         this.usuarioRepository = usuarioRepository;
     }
 
-    // Bean para cargar usuarios (referencia a nuestro UserDetailsServiceImpl)
+    //cargar usuarios
     @Bean
     public UserDetailsService userDetailsService() {
         return email -> usuarioRepository.findByEmail(email)

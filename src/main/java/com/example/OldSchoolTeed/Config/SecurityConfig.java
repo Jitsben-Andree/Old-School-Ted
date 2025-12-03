@@ -34,14 +34,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // --- RUTAS PÚBLICAS ---
+                        //  RUTAS PÚBLICAS
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll() 
 
 
                         // .requestMatchers("/error-prueba").permitAll()
                         // .requestMatchers("/sentry-test").permitAll()
-                        // .requestMatchers("/error-unico").permitAll()
+                        .requestMatchers("/error-unico").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
@@ -49,15 +49,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
-                        // --- RUTAS DE ADMIN ---
+                        //  RUTAS DE ADMIN
                         .requestMatchers("/admin/**").hasAuthority("Administrador")
 
-                        // --- RUTAS DE CLIENTE ---
+                        //  RUTAS DE CLIENTE
                         .requestMatchers("/carrito/**").hasAnyAuthority("Cliente", "Administrador")
                         .requestMatchers(HttpMethod.GET, "/pedidos", "/pedidos/**").hasAnyAuthority("Cliente", "Administrador")
                         .requestMatchers(HttpMethod.POST, "/pedidos/crear").hasAnyAuthority("Cliente", "Administrador")
 
-                        // --- CUALQUIER OTRA RUTA ---
+                        //  CUALQUIER OTRA RUTA
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -21,7 +21,7 @@ public class PromocionController {
         this.promocionService = promocionService;
     }
 
-    // --- Endpoints Públicos ---
+    //  Endpoints Públicos
 
     @GetMapping("/promociones")
     public ResponseEntity<List<PromocionResponse>> obtenerTodasLasPromociones() {
@@ -35,7 +35,7 @@ public class PromocionController {
         return ResponseEntity.ok(promocionService.getPromocionById(id));
     }
 
-    // --- Endpoints de Administrador ---
+    //  Endpoints de Administrador
 
     @PostMapping("/admin/promociones")
     public ResponseEntity<PromocionResponse> crearPromocionAdmin(@Valid @RequestBody PromocionRequest request) {

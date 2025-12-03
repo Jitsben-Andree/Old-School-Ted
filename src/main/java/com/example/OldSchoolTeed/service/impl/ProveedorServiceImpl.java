@@ -32,7 +32,7 @@ public class ProveedorServiceImpl implements ProveedorService {
         proveedor.setContacto(request.getContacto());
         proveedor.setTelefono(request.getTelefono());
         proveedor.setDireccion(request.getDireccion());
-        // LÍNEA DE PRECIO ELIMINADA
+
 
         Proveedor proveedorGuardado = proveedorRepository.save(proveedor);
         return mapToResponse(proveedorGuardado);
@@ -64,7 +64,7 @@ public class ProveedorServiceImpl implements ProveedorService {
         proveedor.setContacto(request.getContacto());
         proveedor.setTelefono(request.getTelefono());
         proveedor.setDireccion(request.getDireccion());
-        // LÍNEA DE PRECIO ELIMINADA
+
 
         Proveedor proveedorActualizado = proveedorRepository.save(proveedor);
         return mapToResponse(proveedorActualizado);
@@ -76,7 +76,7 @@ public class ProveedorServiceImpl implements ProveedorService {
         Proveedor proveedor = proveedorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Proveedor no encontrado con ID: " + id));
 
-        // Validación de negocio: No se puede eliminar un proveedor si está asociado a productos.
+
         boolean isAssociated = productoProveedorRepository.existsByProveedor(proveedor);
         if (isAssociated) {
             throw new RuntimeException("No se puede eliminar el proveedor (ID: " + id + ") porque está asociado a uno o más productos.");
@@ -85,7 +85,6 @@ public class ProveedorServiceImpl implements ProveedorService {
         proveedorRepository.delete(proveedor);
     }
 
-    // --- Método Helper ---
     private ProveedorResponse mapToResponse(Proveedor proveedor) {
         return ProveedorResponse.builder()
                 .idProveedor(proveedor.getIdProveedor())

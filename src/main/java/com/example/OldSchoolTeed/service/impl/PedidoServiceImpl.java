@@ -115,7 +115,7 @@ public class PedidoServiceImpl implements PedidoService {
             log.info("Total del pedido calculado con descuentos: {}", totalPedidoConDescuento);
 
 
-            // 2. Crear Pedido
+            //  Crear Pedido
             log.info("Creando entidad Pedido...");
             Pedido pedido = new Pedido();
             pedido.setUsuario(usuario);
@@ -123,7 +123,7 @@ public class PedidoServiceImpl implements PedidoService {
             Pedido pedidoGuardado = pedidoRepository.save(pedido);
             log.info("Pedido guardado con ID: {}", pedidoGuardado.getIdPedido());
 
-            // 3. Crear Pago y Envío
+            // Crear Pago y Envío
             log.info("Creando entidades Pago y Envío...");
             Pago.MetodoPago metodoPago;
             // Usar StringUtils.isBlank para validar método de pago
@@ -157,7 +157,7 @@ public class PedidoServiceImpl implements PedidoService {
             log.debug("Envío guardado con ID: {}", envioGuardado.getIdEnvio());
 
 
-            // 4. Crear Detalles de Pedido y Actualizar Stock
+            // Crear Detalles de Pedido y Actualizar Stock
             log.info("Creando Detalles de Pedido y actualizando stock...");
             List<DetallePedido> detallesPedidoGuardados = new ArrayList<>();
             List<DetalleCarrito> detallesAEliminar = new ArrayList<>(detallesCarrito);
@@ -188,7 +188,7 @@ public class PedidoServiceImpl implements PedidoService {
             carritoRepository.save(carrito);
             log.info("Todos los detalles movidos y carrito vaciado.");
 
-            // 5. Asociar colecciones y devolver
+            // Asociar colecciones y devolver
             pedidoGuardado.setPago(pagoGuardado);
             pedidoGuardado.setEnvio(envioGuardado);
             pedidoGuardado.setDetallesPedido(detallesPedidoGuardados);
@@ -222,7 +222,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PedidoResponse> getPedidosByUsuario(String usuarioEmail) { /* ... código existente ... */
+    public List<PedidoResponse> getPedidosByUsuario(String usuarioEmail) {
         log.debug("Buscando pedidos para usuario: {}", usuarioEmail);
         Usuario usuario = usuarioRepository.findByEmail(usuarioEmail)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
@@ -236,7 +236,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PedidoResponse getPedidoById(String usuarioEmail, Integer pedidoId) { /* ... código existente ... */
+    public PedidoResponse getPedidoById(String usuarioEmail, Integer pedidoId) {
         log.debug("Buscando pedido ID {} para usuario {}", pedidoId, usuarioEmail);
         Usuario usuario = usuarioRepository.findByEmail(usuarioEmail)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
@@ -254,11 +254,10 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
 
-    // --- Métodos de Administrador ---
-
+//admin
     @Override
     @Transactional(readOnly = true)
-    public List<PedidoResponse> getAllPedidosAdmin() { /* ... código existente ... */
+    public List<PedidoResponse> getAllPedidosAdmin() {
         log.info("Admin: Obteniendo todos los pedidos.");
         List<Pedido> pedidos = pedidoRepository.findAll();
         log.info("Admin: {} pedidos encontrados.", pedidos.size());
@@ -269,7 +268,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional
-    public PedidoResponse updatePedidoStatusAdmin(Integer pedidoId, AdminUpdatePedidoStatusRequest request) { /* ... código existente ... */
+    public PedidoResponse updatePedidoStatusAdmin(Integer pedidoId, AdminUpdatePedidoStatusRequest request) {
         log.info("Admin: Actualizando estado del pedido ID {} a {}", pedidoId, request.getNuevoEstado());
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado con ID: " + pedidoId));
@@ -293,7 +292,7 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional
-    public PedidoResponse updatePagoStatusAdmin(Integer pedidoId, AdminUpdatePagoRequest request) { /* ... código existente ... */
+    public PedidoResponse updatePagoStatusAdmin(Integer pedidoId, AdminUpdatePagoRequest request) {
         log.info("Admin: Actualizando estado de pago del pedido ID {} a {}", pedidoId, request.getNuevoEstadoPago());
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado con ID: " + pedidoId));
@@ -305,7 +304,7 @@ public class PedidoServiceImpl implements PedidoService {
             pago = new Pago();
             pago.setPedido(pedido);
             pago.setMonto(pedido.getTotal() != null ? pedido.getTotal() : BigDecimal.ZERO);
-            pago.setMetodo(Pago.MetodoPago.TARJETA); // Default
+            pago.setMetodo(Pago.MetodoPago.TARJETA);
             crearPagoNuevo = true;
         }
 
@@ -374,8 +373,8 @@ public class PedidoServiceImpl implements PedidoService {
             envioModificado = true;
         }
         // Usar StringUtils.isNotBlank y el getter correcto
-        if (StringUtils.isNotBlank(request.getCodigoSeguimiento())) { // <<< CORREGIDO AQUÍ
-            envio.setCodigoSeguimiento(request.getCodigoSeguimiento()); // <<< CORREGIDO AQUÍ
+        if (StringUtils.isNotBlank(request.getCodigoSeguimiento())) {
+            envio.setCodigoSeguimiento(request.getCodigoSeguimiento());
             log.debug("Admin: Código de seguimiento actualizado para pedido ID {}", pedidoId);
             envioModificado = true;
         }
@@ -429,7 +428,7 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedidoFinal = pedidoRepository.findById(pedidoId).get();
         return mapToPedidoResponse(pedidoFinal);
     }
-    // --- Lógica de Mapeo (Helper) ---
+    //  Lógica de Mapeo (Helper)
     private PedidoResponse mapToPedidoResponse(Pedido pedido) {
         List<DetallePedido> detalles = pedido.getDetallesPedido();
         if (detalles == null) {

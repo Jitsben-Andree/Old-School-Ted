@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-// DTO para mostrar la información de una Categoria
+
 @Data
 @Builder
 @NoArgsConstructor

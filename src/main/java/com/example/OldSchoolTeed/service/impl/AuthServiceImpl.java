@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         usuario.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         usuario.setRoles(roles);
         usuario.setActivo(true);
-        usuario.setAccountNonLocked(true); // Asegurarse de que esté desbloqueado al registrarse
+        usuario.setAccountNonLocked(true);
         usuario.setFailedLoginAttempts(0);
 
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
@@ -110,11 +110,9 @@ public class AuthServiceImpl implements AuthService {
         log.info("Intentando login para usuario: {}", request.getEmail());
 
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas")); // No revelar si el usuario existe
+                .orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas"));
 
         if (!usuario.isAccountNonLocked()) {
-            // MODIFICADO: Si la cuenta está bloqueada, solo lanzamos la excepción.
-            // Ya no reenviamos el código automáticamente desde aquí.
             log.warn("Usuario {} con cuenta bloqueada intentó iniciar sesión.", request.getEmail());
             throw new LockedException("Tu cuenta está bloqueada. Por favor, restablece tu contraseña.");
         }
@@ -151,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
         } catch (BadCredentialsException e) {
             log.warn("Credenciales incorrectas para: {}", request.getEmail());
             increaseFailedAttempts(usuario);
-            throw new BadCredentialsException("Credenciales incorrectas"); // Relanzar
+            throw new BadCredentialsException("Credenciales incorrectas");
         }
     }
 
@@ -161,30 +159,24 @@ public class AuthServiceImpl implements AuthService {
         log.warn("Intento fallido #{} para {}", newFailAttempts, user.getEmail());
 
         if (newFailAttempts >= MAX_FAILED_ATTEMPTS) {
-            lockUserAccount(user); // Llama al nuevo lockUserAccount (silencioso)
+            lockUserAccount(user);
         } else {
             usuarioRepository.save(user);
         }
     }
 
-    /**
-     * MODIFICADO: Esta función AHORA SOLO BLOQUEA.
-     * Ya no genera códigos ni envía emails.
-     */
+
     private void lockUserAccount(Usuario user) {
         user.setAccountNonLocked(false);
-        user.setFailedLoginAttempts(0); // Reseteamos para que no entre en un bucle
+        user.setFailedLoginAttempts(0);
 
-        // --- LÓGICA DE CÓDIGO Y EMAIL ELIMINADA ---
+        //  LÓGICA DE CÓDIGO Y EMAIL ELIMINADA
 
         usuarioRepository.save(user);
         log.warn("CUENTA BLOQUEADA para: {}. No se envía código automático.", user.getEmail());
     }
 
-    /**
-     * MODIFICADO: Esta función AHORA es la única que genera y envía códigos.
-     * Es llamada por el endpoint /request-reset (Olvidé Contraseña).
-     */
+
     @Override
     @Transactional
     public void sendRecoveryCode(String email) {
@@ -197,7 +189,7 @@ public class AuthServiceImpl implements AuthService {
         user.setUnlockCode(code);
         user.setUnlockCodeExpiration(LocalDateTime.now().plusMinutes(15)); // Válido por 15 minutos
 
-        // Bloqueamos la cuenta para forzar el uso del código (esto es bueno por seguridad)
+        // Bloqueamos la cuenta para forzar el uso del código
         user.setAccountNonLocked(false);
 
         usuarioRepository.save(user);

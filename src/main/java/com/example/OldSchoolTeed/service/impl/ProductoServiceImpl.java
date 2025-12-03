@@ -112,7 +112,7 @@ public class ProductoServiceImpl implements ProductoService {
                     .collect(Collectors.toList());
         }
 
-        // --- CORRECCIÓN: MAPEO DE LEYENDAS (Faltaba esto para verlas en el detalle) ---
+
         List<ProductoResponse.LeyendaDto> leyendasDto = new ArrayList<>();
         if (producto.getLeyendas() != null) {
             leyendasDto = producto.getLeyendas().stream()
@@ -184,7 +184,7 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setActivo(request.getActivo() != null ? request.getActivo() : true);
         producto.setCategoria(categoria);
 
-        // --- CORRECCIÓN: GUARDAR COLOR Y LEYENDAS ---
+
         producto.setColorDorsal(request.getColorDorsal() != null ? request.getColorDorsal() : "#000000");
 
         if (request.getLeyendas() != null && !request.getLeyendas().isEmpty()) {
@@ -221,17 +221,17 @@ public class ProductoServiceImpl implements ProductoService {
         if (request.getActivo() != null) producto.setActivo(request.getActivo());
         try { if (request.getTalla() != null) producto.setTalla(Producto.Talla.valueOf(request.getTalla())); } catch (Exception e) {}
 
-        // --- CORRECCIÓN: ACTUALIZAR COLOR ---
+
         if (request.getColorDorsal() != null) {
             producto.setColorDorsal(request.getColorDorsal());
         }
 
-        // --- CORRECCIÓN: ACTUALIZAR LEYENDAS ---
+
         if (request.getLeyendas() != null) {
-            // Limpiar lista actual (Hibernate se encarga de borrar en BD por orphanRemoval=true)
+
             producto.getLeyendas().clear();
 
-            // Agregar las nuevas
+
             for (ProductoRequest.LeyendaDto dto : request.getLeyendas()) {
                 if (StringUtils.isNotBlank(dto.getNombre()) && StringUtils.isNotBlank(dto.getNumero())) {
                     Leyenda leyenda = new Leyenda();

@@ -13,10 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
-/**
- * Esta clase se ejecuta automáticamente al iniciar Spring Boot
- * y se encarga de crear datos iniciales (roles y usuario admin).
- */
 @Component
 public class DataSeeder implements CommandLineRunner {
 
@@ -31,7 +27,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     @Override
-    @Transactional // Usamos @Transactional para manejar la sesión de JPA
+    @Transactional
     public void run(String... args) throws Exception {
         // 1. Crear roles si no existen
         Rol rolCliente = rolRepository.findByNombre("Cliente")

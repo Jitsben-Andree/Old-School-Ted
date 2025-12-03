@@ -23,7 +23,7 @@ public class CategoriaServiceImpl implements CategoriaService {
         this.categoriaRepository = categoriaRepository;
     }
 
-    // --- Lógica de Mapeo (Helper) ---
+    //  Lógica de Mapeo
     private CategoriaResponse mapToCategoriaResponse(Categoria categoria) {
         return CategoriaResponse.builder()
                 .idCategoria(categoria.getIdCategoria())

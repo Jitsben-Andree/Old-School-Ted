@@ -18,6 +18,7 @@ public class OldSchoolTeedApplication {
 	@Value("${sentry.dsn}")
 	private String sentryDsn;
 
+	
 	@PostConstruct
 	public void initSentry() {
 		if (!Sentry.isEnabled()) {
@@ -32,7 +33,7 @@ public class OldSchoolTeedApplication {
 				System.err.println("Falló la inicialización de Sentry: " + e.getMessage());
 			}
 		} else {
-			System.out.println("✅ Sentry se inició automáticamente.");
+			System.out.println("Sentry se inició automáticamente.");
 		}
 	}
 }

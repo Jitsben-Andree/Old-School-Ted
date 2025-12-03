@@ -30,7 +30,7 @@ public class LogController {
     private final String LOG_FILE_PATH = "./logs/app.log";
 
     @GetMapping("/recent")
-    public ResponseEntity<List<String>> getRecentLogs() throws IOException { // Declaramos throws IOException
+    public ResponseEntity<List<String>> getRecentLogs() throws IOException {
         Path path = Paths.get(LOG_FILE_PATH);
         File file = path.toFile();
 
@@ -38,7 +38,7 @@ public class LogController {
             return ResponseEntity.ok(Collections.singletonList("⚠️ Archivo de log no encontrado aún."));
         }
 
-        // Usamos try-with-resources solo para cerrar el Stream, pero NO atrapamos la excepción
+        // Usamos try-with-resources solo para cerrar el Stream
         try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
             List<String> recentLogs = lines.collect(Collectors.toList());
 
@@ -48,7 +48,7 @@ public class LogController {
             Collections.reverse(recentLogs);
             return ResponseEntity.ok(recentLogs);
         }
-        // Si ocurre IOException, sube al GlobalHandler -> Sentry
+
     }
 
     @GetMapping("/download")

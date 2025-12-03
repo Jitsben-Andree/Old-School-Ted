@@ -30,39 +30,38 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     @Override
-    @Transactional(readOnly = true) // Importante para cargar colecciones LAZY como roles
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.debug("Intentando cargar usuario por email: {}", email);
 
-        // Spring Security llama "username" a nuestro "email"
+
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("Usuario no encontrado con email: {}", email);
                     return new UsernameNotFoundException("Usuario no encontrado con email: " + email);
                 });
 
-        // Convertimos nuestros Roles (entidad) a GrantedAuthority de Spring
-        // Asegurarse de que la colección de roles se cargue (puede ser LAZY)
+
+
         Set<GrantedAuthority> authorities = usuario.getRoles().stream()
                 .map(rol -> {
-                    // Log para ver el nombre del rol antes de crear SimpleGrantedAuthority
+
                     log.trace("Mapeando rol: {} (ID: {})", rol.getNombre(), rol.getIdRol());
-                    return new SimpleGrantedAuthority(rol.getNombre()); // Usar el nombre exacto del rol
+                    return new SimpleGrantedAuthority(rol.getNombre());
                 })
                 .collect(Collectors.toSet());
 
-        // *** LOG CLAVE: Imprimir las autoridades (roles) cargadas ***
+
         log.info("Usuario {} cargado con roles: {}", email, authorities);
 
         // Construir y devolver el UserDetails de Spring Security
-        // Esta es la parte CRÍTICA que conecta tu lógica
         return new User(
                 usuario.getEmail(),
                 usuario.getPasswordHash(),
-                usuario.getActivo(), // enabled (true = activo)
-                true, // accountNonExpired
-                true, // credentialsNonExpired
-                usuario.isAccountNonLocked(), // accountNonLocked (true = no bloqueado)
+                usuario.getActivo(),
+                true,
+                true,
+                usuario.isAccountNonLocked(),
                 authorities
         );
     }

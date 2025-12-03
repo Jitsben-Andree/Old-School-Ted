@@ -34,7 +34,7 @@ public class ProductoRequest {
     @NotNull(message = "La categoría es obligatoria")
     private Integer categoriaId;
 
-    // LEYENDAS Y COLOR ---
+
     private String colorDorsal;
     private List<LeyendaDto> leyendas;
 

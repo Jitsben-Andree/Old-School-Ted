@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-// DTO simple para evitar referencias circulares al enviar promociones con productos
 @Data
 @Builder
 @NoArgsConstructor

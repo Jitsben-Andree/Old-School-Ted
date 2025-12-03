@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 public class UnlockRequest {
     private String email;
     private String code;
-    private String newPassword; // Opcional, si el usuario quiere cambiarla al desbloquear
+    private String newPassword;
 }

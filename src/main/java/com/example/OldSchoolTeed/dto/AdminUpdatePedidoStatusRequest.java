@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 public class AdminUpdatePedidoStatusRequest {
     @NotEmpty(message = "El nuevo estado no puede estar vacío")
-    private String nuevoEstado; // Ej: "PAGADO", "ENVIADO", "CANCELADO"
+    private String nuevoEstado;
 }

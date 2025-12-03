@@ -48,7 +48,7 @@ public class CarritoServiceImpl implements CarritoService {
         this.productoService = productoService;
     }
 
-    // --- LÓGICA DE MAPEO (Con Datos de Personalización) ---
+    //  LÓGICA DE MAPEO (Con Datos de Personalización)
     private CarritoResponse mapToCarritoResponse(Carrito carrito) {
         log.trace("Mapeando Carrito ID: {}", carrito.getIdCarrito());
         List<DetalleCarrito> detalles = carrito.getDetallesCarrito() != null ? carrito.getDetallesCarrito() : Collections.emptyList();
@@ -143,7 +143,7 @@ public class CarritoServiceImpl implements CarritoService {
         Carrito carrito = getOrCreateCarrito(usuario);
         List<DetalleCarrito> detallesActuales = carrito.getDetallesCarrito() != null ? carrito.getDetallesCarrito() : new ArrayList<>();
 
-        // --- LÓGICA DE AGRUPACIÓN INTELIGENTE ---
+        //  LÓGICA DE AGRUPACIÓN INTELIGENTE
         boolean esPersonalizado = request.getPersonalizacion() != null || request.getParche() != null;
         DetalleCarrito itemExistente = null;
 

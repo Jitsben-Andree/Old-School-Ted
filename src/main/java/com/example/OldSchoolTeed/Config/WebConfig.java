@@ -1,4 +1,4 @@
-package com.example.OldSchoolTeed.Config; // Asegúrate que el package coincida con tu estructura
+package com.example.OldSchoolTeed.Config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

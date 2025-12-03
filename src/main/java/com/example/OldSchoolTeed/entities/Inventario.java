@@ -38,6 +38,6 @@ public class Inventario {
     public Inventario(Producto producto, int stock) {
         this.producto = producto;
         this.stock = stock;
-        this.setUltimaActualizacion(java.time.LocalDateTime.now()); // (Esto es opcional pero bueno)
+        this.setUltimaActualizacion(java.time.LocalDateTime.now());
     }
 }

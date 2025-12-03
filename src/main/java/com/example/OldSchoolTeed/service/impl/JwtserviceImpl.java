@@ -53,8 +53,6 @@ public class JwtserviceImpl implements JwtService {
 
     @Override
     public String generateRefreshToken(UserDetails userDetails) {
-        // Usamos una expiración más larga para el refresh token
-        // Por ahora, usaremos 7 días como ejemplo
         long refreshExpiration = 1000 * 60 * 60 * 24 * 7;
         return buildToken(new HashMap<>(), userDetails, refreshExpiration);
     }
@@ -97,7 +95,7 @@ public class JwtserviceImpl implements JwtService {
                 .getBody();
     }
 
-    // Obtiene la clave de firma a partir del secret en Base64
+
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);

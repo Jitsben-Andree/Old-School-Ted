@@ -41,7 +41,7 @@ public class ProductoProveedorServiceImpl implements ProductoProveedorService {
         Proveedor proveedor = proveedorRepository.findById(request.getProveedorId())
                 .orElseThrow(() -> new EntityNotFoundException("Proveedor no encontrado con ID: " + request.getProveedorId()));
 
-        // Validación de negocio: No duplicar la asignación
+
         productoProveedorRepository.findByProductoAndProveedor(producto, proveedor)
                 .ifPresent(asignacionExistente -> {
                     throw new RuntimeException("Este producto ya está asignado a este proveedor.");
@@ -98,10 +98,10 @@ public class ProductoProveedorServiceImpl implements ProductoProveedorService {
         productoProveedorRepository.deleteById(asignacionId);
     }
 
-    // --- Método Helper ---
+
     private ProductoProveedorResponse mapToResponse(ProductoProveedor asignacion) {
         return ProductoProveedorResponse.builder()
-                .idAsignacion(asignacion.getIdProdProv()) // Asumiendo que así se llama el ID en tu entidad
+                .idAsignacion(asignacion.getIdProdProv())
                 .productoId(asignacion.getProducto().getIdProducto())
                 .productoNombre(asignacion.getProducto().getNombre())
                 .proveedorId(asignacion.getProveedor().getIdProveedor())

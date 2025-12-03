@@ -36,7 +36,7 @@ public class ProductoController {
         throw new RuntimeException("Error ÚNICO de prueba ID: " + codigoUnico);
     }
 
-    // --- ENDPOINTS PÚBLICOS (/productos/) ---
+    //  ENDPOINTS PÚBLICOS (/productos/)
     @GetMapping("/productos")
     public ResponseEntity<List<ProductoResponse>> getAllProductosActivos() {
         log.info("GET /productos -> Obteniendo productos activos");
@@ -55,7 +55,7 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.getProductosByCategoria(nombreCategoria));
     }
 
-    // --- ENDPOINTS DE ADMINISTRADOR (/admin/productos/**) ---
+    //  ENDPOINTS DE ADMINISTRADOR (/admin/productos/**)
     @GetMapping("/admin/productos/all")
     public ResponseEntity<List<ProductoResponse>> getAllProductosAdmin() {
         log.info("Admin: GET /admin/productos/all -> Obteniendo todos los productos");
@@ -86,7 +86,7 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- GESTIÓN DE PROMOCIONES ---
+    //  GESTIÓN DE PROMOCIONES
     @PostMapping("/admin/productos/{productoId}/promociones/{promocionId}")
     public ResponseEntity<Void> associatePromocionAdmin(@PathVariable Integer productoId, @PathVariable Integer promocionId) {
         log.info("Admin: POST /admin/productos/{}/promociones/{} -> Asociando promoción", productoId, promocionId);
@@ -103,12 +103,12 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- GESTIÓN DE IMÁGENES ---
+    //  GESTIÓN DE IMÁGENES
 
     @PostMapping("/admin/productos/{id}/imagen")
     public ResponseEntity<ProductoResponse> uploadMainImage(
             @PathVariable Integer id,
-            @RequestParam("file") MultipartFile file) throws IOException { // Declaramos IOException para que suba al GlobalHandler
+            @RequestParam("file") MultipartFile file) throws IOException {
 
         log.info("Admin: POST /admin/productos/{}/imagen -> Subiendo portada", id);
         ProductoResponse response = productoService.uploadProductImage(id, file);
@@ -138,7 +138,7 @@ public class ProductoController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- EXPORTAR EXCEL ---
+    //  EXPORTAR EXCEL
     @GetMapping("/admin/productos/exportar-excel")
     public ResponseEntity<Resource> exportProductosToExcel() throws IOException {
         log.info("Admin: GET /admin/productos/exportar-excel -> Solicitud de exportación");

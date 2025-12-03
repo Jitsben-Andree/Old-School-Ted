@@ -18,7 +18,7 @@ public class Rol {
     private Integer idRol;
 
     @Column(name = "nombre", length = 50, nullable = false, unique = true)
-    private String nombre; // Ej: "Cliente", "Administrador"
+    private String nombre; //  "Cliente", "Administrador"
 
     public Rol(String nombre) {
         this.nombre = nombre;

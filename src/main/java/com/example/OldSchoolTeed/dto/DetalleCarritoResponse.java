@@ -17,16 +17,16 @@ public class DetalleCarritoResponse {
     private String productoNombre;
     private String imageUrl;
     private Integer cantidad;
-    private BigDecimal precioUnitario; // Precio base
-    private BigDecimal subtotal;       // Precio total de la línea (con extras)
+    private BigDecimal precioUnitario;
+    private BigDecimal subtotal;
     private Integer stockActual;
 
-    // --- NUEVOS CAMPOS PARA VISUALIZAR ---
-    private String personalizacionTipo;   // "Leyenda" o "Custom"
-    private String personalizacionNombre; // Ej: "MESSI"
-    private String personalizacionNumero; // Ej: "10"
+
+    private String personalizacionTipo;
+    private String personalizacionNombre;
+    private String personalizacionNumero;
     private BigDecimal personalizacionPrecio;
 
-    private String parcheTipo;            // Ej: "UCL"
+    private String parcheTipo;
     private BigDecimal parchePrecio;
 }

@@ -31,14 +31,14 @@ public class DetalleCarrito {
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad;
 
-    // --- NUEVOS CAMPOS DE PERSONALIZACIÓN ---
+
 
     // Precio base al momento de la compra (para evitar cambios si el admin edita el producto después)
     @Column(name = "precio_base")
     private BigDecimal precioBase;
 
     @Column(name = "pers_tipo")
-    private String personalizacionTipo; // "Leyenda", "Custom"
+    private String personalizacionTipo;
 
     @Column(name = "pers_nombre")
     private String personalizacionNombre;
@@ -47,15 +47,14 @@ public class DetalleCarrito {
     private String personalizacionNumero;
 
     @Column(name = "pers_precio")
-    private BigDecimal personalizacionPrecio; // Costo extra
+    private BigDecimal personalizacionPrecio;
 
     @Column(name = "parche_tipo")
-    private String parcheTipo; // "UCL", "LaLiga"
+    private String parcheTipo;
 
     @Column(name = "parche_precio")
-    private BigDecimal parchePrecio; // Costo extra
+    private BigDecimal parchePrecio;
 
-    // --- MÉTODO AUXILIAR PARA CALCULAR SUBTOTAL ---
     public BigDecimal getSubtotal() {
         BigDecimal totalUnitario = precioBase != null ? precioBase : BigDecimal.ZERO;
 

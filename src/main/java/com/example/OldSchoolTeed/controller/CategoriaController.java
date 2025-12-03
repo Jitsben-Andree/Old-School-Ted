@@ -23,7 +23,7 @@ public class CategoriaController {
         this.categoriaService = categoriaService;
     }
 
-    // --- Endpoints Públicos ---
+    //  Endpoints Públicos
 
     @GetMapping
     public ResponseEntity<List<CategoriaResponse>> obtenerTodasLasCategorias() {
@@ -37,7 +37,7 @@ public class CategoriaController {
         return ResponseEntity.ok(categoriaService.getCategoriaById(id));
     }
 
-    // --- Endpoints de Administrador ---
+    //  Endpoints de Administrador
 
     @PostMapping
     @PreAuthorize("hasAuthority('Administrador')")

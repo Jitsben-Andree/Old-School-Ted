@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// DTO para crear o actualizar una Promocion
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -33,7 +33,7 @@ public class FileController {
     public ResponseEntity<Map<String, String>> uploadProductImage(
             @PathVariable Integer productoId,
             @RequestParam("file") MultipartFile file
-    ) throws IOException { // Dejamos que IOException suba al GlobalExceptionHandler
+    ) throws IOException {
 
         log.info("POST /files/upload/producto/{} -> Archivo: {}", productoId, file.getOriginalFilename());
 
