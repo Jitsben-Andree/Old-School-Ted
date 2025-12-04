@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
@@ -31,12 +30,13 @@ public class ScheduledTasksService {
     private final String UUID_VENTAS = "2e8214d9-478e-4e90-a384-5763c290f5f8";
     private final String UUID_BACKUP = "3a789e80-25a6-4597-a4c5-1331d8dd0faa";
 
+    private final String HEALTHCHECK_URL = "https://hc-ping.com/e302d11c-2412-4e86-8bad-582adef7d8dc";
+
     public ScheduledTasksService(UsuarioRepository usuarioRepository, PedidoRepository pedidoRepository) {
         this.usuarioRepository = usuarioRepository;
         this.pedidoRepository = pedidoRepository;
         this.restTemplate = new RestTemplate();
     }
-
 
     // TAREAS AUTOMÁTICAS (@Scheduled)
 
@@ -55,7 +55,9 @@ public class ScheduledTasksService {
         ejecutarReporteManual();
     }
 
-    // TAREAS MANUALES (Reporte de Texto)
+    // ========================================================================
+    // TAREAS MANUALES (Retornan Reporte de Texto)
+    // ========================================================================
 
     public String ejecutarLimpiezaManual() {
         StringBuilder sb = new StringBuilder();
@@ -90,7 +92,9 @@ public class ScheduledTasksService {
         return sb.toString();
     }
 
-
+    /**
+     * BACKUP ROBUSTO: Captura errores en el texto y NO lanza excepciones.
+     */
     public String ejecutarBackupDatabaseManual() {
         StringBuilder sb = new StringBuilder();
         sb.append("=== LOG DE BACKUP DE BASE DE DATOS ===\n");
@@ -115,7 +119,7 @@ public class ScheduledTasksService {
                 sb.append("Asegúrate de crear la carpeta 'scripts' en la raíz del proyecto.\n");
                 // No lanzamos throw, solo marcamos fallo
             } else {
-                sb.append(" Script encontrado. Ejecutando...\n");
+                sb.append("Script encontrado. Ejecutando...\n");
                 sb.append("---------------- CONSOLA ----------------\n");
 
                 // Ejecutar con comillas por si hay espacios en la ruta
@@ -138,7 +142,7 @@ public class ScheduledTasksService {
                 sb.append("------------------------------------------\n");
 
                 if (exitCode == 0) {
-                    sb.append("✅ RESULTADO: ÉXITO. El código de salida fue 0.\n");
+                    sb.append(" RESULTADO: ÉXITO. El código de salida fue 0.\n");
                     exito = true;
                 } else {
                     sb.append(" RESULTADO: FALLÓ. El código de salida fue ").append(exitCode).append(".\n");
@@ -155,16 +159,16 @@ public class ScheduledTasksService {
         // Reportar a Healthchecks.io
         if (exito) {
             ping(UUID_BACKUP);
-            log.info("🏁 Backup finalizado con éxito.");
+            log.info(" Backup finalizado con éxito.");
         } else {
             ping(UUID_BACKUP + "/fail");
-            log.error("❌ Backup finalizó con errores.");
+            log.error(" Backup finalizó con errores.");
         }
 
         return sb.toString();
     }
 
-    //  AUXILIARES
+    // --- AUXILIARES ---
 
     @FunctionalInterface
     interface TaskLogic { void run() throws Exception; }

@@ -1,31 +1,30 @@
-@echo off
-setlocal
+#!/bin/sh
 
-:: CONFIGURACIÓN
-set DB_NAME=OldSchoolTeedDB
-set DB_USER=postgres
-set PGPASSWORD=0102
-set PG_BIN="C:\Program Files\PostgreSQL\16\bin"
-set BACKUP_DIR=..\backups
-set TIMESTAMP=%date:~-4,4%%date:~-7,2%%date:~-10,2%_%time:~0,2%%time:~3,2%%time:~6,2%
-set TIMESTAMP=%TIMESTAMP: =0%
-set FILENAME=%BACKUP_DIR%\backup_%DB_NAME%_%TIMESTAMP%.sql
+# Usamos variables de entorno si existen (Docker), si no, valores por defecto
+DB_NAME=${DB_NAME:-oldschoolteed_db}
+DB_USER=${DB_USER:-postgres}
+# PGPASSWORD es la variable que pg_dump busca automáticamente
+export PGPASSWORD=${DB_PASSWORD:-0102} 
+DB_HOST=${DB_HOST:-localhost}
 
-echo ==========================================
-echo INICIANDO BACKUP: %DB_NAME%
-echo ==========================================
+BACKUP_DIR="../backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+FILENAME="${BACKUP_DIR}/backup_${DB_NAME}_${TIMESTAMP}.sql"
 
-if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
+echo "=========================================="
+echo "INICIANDO BACKUP: $DB_NAME en $DB_HOST"
+echo "=========================================="
 
-%PG_BIN%\pg_dump -U %DB_USER% -d %DB_NAME% -F c -b -v -f "%FILENAME%"
+mkdir -p "$BACKUP_DIR"
 
-if %ERRORLEVEL% equ 0 (
-    echo.
-    echo ✅ EXITO: Backup guardado en:
-    echo %FILENAME%
-    exit /b 0
-) else (
-    echo.
-    echo ❌ ERROR: Fallo el backup.
-    exit /b 1
-)
+# Ejecutamos pg_dump
+# -h: Host, -U: Usuario, -d: Base de datos, -F c: Formato custom
+pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -F c -b -v -f "$FILENAME"
+
+if [ $? -eq 0 ]; then
+    echo "✅ EXITO: Backup guardado en $FILENAME"
+    exit 0
+else
+    echo "❌ ERROR: Fallo el backup."
+    exit 1
+fi
